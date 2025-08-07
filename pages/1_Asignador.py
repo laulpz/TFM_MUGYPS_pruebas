@@ -35,7 +35,7 @@ file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xl
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
     from db_manager import reset_db
-        reset_db()
+    reset_db()
     st.sidebar.success("✅ Base de datos reiniciada correctamente.")
     st.session_state["reset"] = True
     st.experimental_rerun()
