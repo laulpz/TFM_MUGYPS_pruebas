@@ -254,10 +254,7 @@ if file_staff:
                 file_name="Resumen_Mensual.xlsx"
             )
 
-        
-        st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(df_assign), file_name="Planilla_Asignada.xlsx")
-        st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(resumen_mensual), file_name="Resumen_Mensual.xlsx")
-
+       
         if uncovered:
             df_uncov = pd.DataFrame(uncovered)
             st.subheader("⚠️ Turnos sin cubrir")
