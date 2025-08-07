@@ -36,9 +36,9 @@ st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
     from db_manager import reset_db
         reset_db()
-        st.sidebar.success("✅ Base de datos reiniciada correctamente.")
-        st.session_state["reset"] = True
-        st.experimental_rerun()
+    st.sidebar.success("✅ Base de datos reiniciada correctamente.")
+    st.session_state["reset"] = True
+    st.experimental_rerun()
 
 
 # Selector de método de demanda (página principal)
