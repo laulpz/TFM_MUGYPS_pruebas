@@ -1,2 +1,0 @@
-Funciona asignación y aprobación. No base de datos
-Solo 1 pestaña en la app
