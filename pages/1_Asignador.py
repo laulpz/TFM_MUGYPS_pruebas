@@ -22,6 +22,15 @@ dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", 
 turnos = ["Mañana", "Tarde", "Noche"]
 
 st.sidebar.header("📂 Suba la plantilla de personal")
+
+st.sidebar.markdown("---")
+if st.sidebar.button("🗑️ Resetear base de datos"):
+    from db_manager import reset_db
+    reset_db()
+    st.sidebar.success("✅ Base de datos reiniciada correctamente.")
+    st.experimental_rerun()
+
+
 file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xlsx"])
 
 metodo = st.sidebar.selectbox("📈 Método para ingresar demanda:", ["Desde Excel", "Generar manualmente"])
@@ -75,7 +84,6 @@ if file_staff:
                 demanda_por_dia[dia][turno] = cols[i].number_input(
                     label=f"{turno}", min_value=0, max_value=20, value=3, key=f"{dia}_{turno}"
                 )
-
         if fecha_fin <= fecha_inicio:
             st.warning("⚠️ La fecha fin debe ser posterior a la fecha inicio.")
             st.stop()
