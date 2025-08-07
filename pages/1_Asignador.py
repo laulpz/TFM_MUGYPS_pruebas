@@ -1,22 +1,32 @@
+
 import streamlit as st
 import pandas as pd
 import ast
 from datetime import datetime, timedelta
 from io import BytesIO
-from db_manager import guardar_asignaciones, guardar_resumen_mensual
+from db_manager import (
+    init_db, guardar_asignaciones, guardar_resumen_mensual,
+    descargar_bd_desde_drive, subir_bd_a_drive
+)
+
+st.set_page_config(page_title="Asignador", layout="wide")
+st.title("asignador")
+
+# === CONFIGURA TU FILE_ID DE GOOGLE DRIVE AQUÍ ===
+FILE_ID = "1zqAyIB1BLfCc2uH1v29r-clARHoh2o_s"
+
+# Descargar y preparar base de datos
+descargar_bd_desde_drive(FILE_ID)
+init_db()
 
 def ejecutar_asignador():
     st.set_page_config(page_title="Asignador de Turnos de Enfermería – Criterios SERMAS", layout="wide")
     st.markdown("""
     ### Instrucciones
     1. **Suba la plantilla de personal** (`.xlsx`) con las columnas:
-       - `ID` (código de empleado)
-       - `Unidad_Asignada`
-       - `Jornada` (`Completa`/`Parcial`)
-       - `Turno_Contrato` (`Mañana`, `Tarde` o `Noche`)
-       - `Fechas_No_Disponibilidad` (lista `YYYY-MM-DD` separadas por comas)
+       - `ID`, `Unidad_Asignada`, `Jornada` (`Completa`/`Parcial`), `Turno_Contrato`, `Fechas_No_Disponibilidad`
     2. **Suba la demanda de turnos** (`.xlsx`) con las columnas:
-       - `Fecha`, `Unidad`, `Turno` (`Mañana`/`Tarde`/`Noche`), `Personal_Requerido`
+       - `Fecha`, `Unidad`, `Turno`, `Personal_Requerido`
     3. Pulse **Asignar turnos**.
     """)
 
@@ -36,12 +46,9 @@ def ejecutar_asignador():
         demand.columns = demand.columns.str.strip()
 
         def parse_dates(cell):
-            if pd.isna(cell):
-                return []
-            try:
-                return [d.strip() for d in ast.literal_eval(str(cell))]
-            except Exception:
-                return [d.strip() for d in str(cell).split(',')]
+            if pd.isna(cell): return []
+            try: return [d.strip() for d in ast.literal_eval(str(cell))]
+            except: return [d.strip() for d in str(cell).split(',')]
 
         staff["Fechas_No_Disponibilidad"] = staff["Fechas_No_Disponibilidad"].apply(parse_dates)
 
@@ -153,7 +160,6 @@ def ejecutar_asignador():
             if not df_assign.empty:
                 guardar_asignaciones(df_assign)
 
-            if not df_assign.empty:
                 df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"])
                 df_assign["Año"] = df_assign["Fecha"].dt.year
                 df_assign["Mes"] = df_assign["Fecha"].dt.month
@@ -172,31 +178,27 @@ def ejecutar_asignador():
                     "Horas_Acumuladas": "Horas Asignadas"
                 })
 
+                guardar_resumen_mensual(resumen_mensual)
+
                 st.subheader("📊 Resumen mensual por profesional")
                 st.dataframe(resumen_mensual)
 
-                
-                guardar_resumen_mensual(resumen_mensual)
-st.download_button(
+                def to_excel_bytes(df):
+                    output = BytesIO()
+                    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                        df.to_excel(writer, index=False)
+                    return output.getvalue()
+
+                st.download_button(
                     label="⬇️ Descargar resumen mensual",
                     data=to_excel_bytes(resumen_mensual),
                     file_name="Resumen_Mensual_Profesional.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
 
-
-            def to_excel_bytes(df):
-                output = BytesIO()
-                with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                    df.to_excel(writer, index=False)
-                return output.getvalue()
-
-            st.download_button(
-                label="⬇️ Descargar planilla (Excel)",
-                data=to_excel_bytes(df_assign),
-                file_name="Planilla_Asignada.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+                # Subir la base de datos actualizada a Google Drive
+                subir_bd_a_drive(FILE_ID)
+                st.success("📤 Base de datos subida automáticamente a Google Drive.")
 
             if uncovered:
                 df_uncov = pd.DataFrame(uncovered)
@@ -210,4 +212,3 @@ st.download_button(
                 )
     else:
         st.info("🔄 Por favor, suba los dos archivos (personal y demanda) para comenzar.")
-
