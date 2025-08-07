@@ -181,6 +181,7 @@ if file_staff:
                 uncovered.append({"Fecha": fecha, "Unidad": unidad, "Turno": turno, "Faltan": req - assigned_count})
 
         df_assign = pd.DataFrame(assignments)
+        df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
         st.success("✅ Asignación completada")
         st.dataframe(df_assign)
 
