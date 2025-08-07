@@ -18,6 +18,7 @@ FILE_ID = "1zqAyIB1BLfCc2uH1v29r-clARHoh2o_s"
 # Descargar y preparar base de datos
 descargar_bd_desde_drive(FILE_ID)
 init_db()
+def ejecutar_asignador()
 
 def ejecutar_asignador():
     st.set_page_config(page_title="Asignador de Turnos de Enfermería – Criterios SERMAS", layout="wide")
