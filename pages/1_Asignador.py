@@ -5,43 +5,33 @@ from datetime import datetime, timedelta, date
 from io import BytesIO
 from db_manager import (
     init_db, guardar_asignaciones, guardar_resumen_mensual,
-    descargar_bd_desde_drive, subir_bd_a_drive, reset_db
+    descargar_bd_desde_drive, subir_bd_a_drive
 )
 
 st.set_page_config(page_title="Asignador", layout="wide")
-if "reset_db_done" in st.session_state and st.session_state["reset_db_done"]:
-    st.session_state["reset_db_done"] = False
-    st.rerun()
-    
 st.title("📋 Asignador de Turnos (Excel o Generador Manual)")
 
-# Configuración de base de datos
 FILE_ID = "1zqAyIB1BLfCc2uH1v29r-clARHoh2o_s"
 descargar_bd_desde_drive(FILE_ID)
 init_db()
 
-# Parámetros base
 SHIFT_HOURS = {"Mañana": 7.5, "Tarde": 7.5, "Noche": 10}
 BASE_MAX_HOURS = {"Mañana": 1642.5, "Tarde": 1642.5, "Noche": 1470}
 BASE_MAX_JORNADAS = {"Mañana": 219, "Tarde": 219, "Noche": 147}
 dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 turnos = ["Mañana", "Tarde", "Noche"]
 
-# Subida plantilla de personal
 st.sidebar.header("📂 Suba la plantilla de personal")
-file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xlsx"])
 
-# Botón para resetear
+file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xlsx"])
+metodo = st.sidebar.selectbox("📈 Método para ingresar demanda:", ["Desde Excel", "Generar manualmente"])
+
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
+    from db_manager import reset_db
     reset_db()
     st.sidebar.success("✅ Base de datos reiniciada correctamente.")
-    st.session_state["reset"] = True
-    st.session_state["reset_db_done"] = True
-
-
-# Selector de método de demanda (página principal)
-metodo = st.selectbox("📈 Selecciona el método para ingresar la demanda:", ["Desde Excel", "Generar manualmente"])
+    st.experimental_rerun()
 
 if file_staff:
     staff = pd.read_excel(file_staff)
@@ -203,7 +193,7 @@ if file_staff:
 
         guardar_asignaciones(df_assign)
 
-        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"], dayfirst=True)
+        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"])
         df_assign["Año"] = df_assign["Fecha"].dt.year
         df_assign["Mes"] = df_assign["Fecha"].dt.month
 
@@ -222,39 +212,18 @@ if file_staff:
         guardar_resumen_mensual(resumen_mensual)
         subir_bd_a_drive(FILE_ID)
 
-        # Convertir fechas al formato dd/mm/yyyy para el Excel
-        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"]).dt.strftime("%d/%m/%Y")
-
-        # Guardar los DataFrames en el estado de sesión para mantenerlos después de recargar
-        st.session_state["df_assign"] = df_assign
-        st.session_state["resumen_mensual"] = resumen_mensual
-
         st.subheader("📊 Resumen mensual")
         st.dataframe(resumen_mensual)
 
         def to_excel_bytes(df):
             output = BytesIO()
-            with pd.ExcelWriter(output, engine="openpyxl", date_format="DD/MM/YYYY") as writer:
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
                 df.to_excel(writer, index=False)
             return output.getvalue()
 
+        st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(df_assign), file_name="Planilla_Asignada.xlsx")
+        st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(resumen_mensual), file_name="Resumen_Mensual.xlsx")
 
-        # Mostrar botones solo si los DataFrames siguen disponibles en sesión
-        if "df_assign" in st.session_state:
-            st.download_button(
-                "⬇️ Descargar planilla asignada",
-                data=to_excel_bytes(st.session_state["df_assign"]),
-                file_name="Planilla_Asignada.xlsx"
-            )
-
-        if "resumen_mensual" in st.session_state:
-            st.download_button(
-                "⬇️ Descargar resumen mensual",
-                data=to_excel_bytes(st.session_state["resumen_mensual"]),
-                file_name="Resumen_Mensual.xlsx"
-            )
-
-       
         if uncovered:
             df_uncov = pd.DataFrame(uncovered)
             st.subheader("⚠️ Turnos sin cubrir")
