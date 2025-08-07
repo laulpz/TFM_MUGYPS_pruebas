@@ -11,27 +11,33 @@ from db_manager import (
 st.set_page_config(page_title="Asignador", layout="wide")
 st.title("📋 Asignador de Turnos (Excel o Generador Manual)")
 
+# Configuración de base de datos
 FILE_ID = "1zqAyIB1BLfCc2uH1v29r-clARHoh2o_s"
 descargar_bd_desde_drive(FILE_ID)
 init_db()
 
+# Parámetros base
 SHIFT_HOURS = {"Mañana": 7.5, "Tarde": 7.5, "Noche": 10}
 BASE_MAX_HOURS = {"Mañana": 1642.5, "Tarde": 1642.5, "Noche": 1470}
 BASE_MAX_JORNADAS = {"Mañana": 219, "Tarde": 219, "Noche": 147}
 dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 turnos = ["Mañana", "Tarde", "Noche"]
 
+# Subida plantilla de personal
 st.sidebar.header("📂 Suba la plantilla de personal")
-
 file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xlsx"])
-metodo = st.sidebar.selectbox("📈 Método para ingresar demanda:", ["Desde Excel", "Generar manualmente"])
 
+# Botón para resetear
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
     from db_manager import reset_db
     reset_db()
     st.sidebar.success("✅ Base de datos reiniciada correctamente.")
     st.experimental_rerun()
+
+
+# Selector de método de demanda (página principal)
+metodo = st.selectbox("📈 Selecciona el método para ingresar la demanda:", ["Desde Excel", "Generar manualmente"])
 
 if file_staff:
     staff = pd.read_excel(file_staff)
