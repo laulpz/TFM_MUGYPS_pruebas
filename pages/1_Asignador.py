@@ -204,7 +204,8 @@ if file_staff:
 
         guardar_asignaciones(df_assign)
 
-        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"])
+        #df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"])
+        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"]).dt.strftime("%d/%m/%Y")
         df_assign["Año"] = df_assign["Fecha"].dt.year
         df_assign["Mes"] = df_assign["Fecha"].dt.month
 
@@ -223,12 +224,35 @@ if file_staff:
         guardar_resumen_mensual(resumen_mensual)
         subir_bd_a_drive(FILE_ID)
 
+
+        # Convertir fechas al formato dd/mm/yyyy para el Excel
+        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"]).dt.strftime("%d/%m/%Y")
+        # Guardar los DataFrames en el estado de sesión para mantenerlos después de recargar
+        st.session_state["df_assign"] = df_assign
+        st.session_state["resumen_mensual"] = resumen_mensual
+
+        
         st.subheader("📊 Resumen mensual")
         st.dataframe(resumen_mensual)
 
+        # Mostrar botones solo si los DataFrames siguen disponibles en sesión
+        if "df_assign" in st.session_state:
+            st.download_button(
+                "⬇️ Descargar planilla asignada",
+                data=to_excel_bytes(st.session_state["df_assign"]),
+                file_name="Planilla_Asignada.xlsx"
+            )
+
+        if "resumen_mensual" in st.session_state:
+            st.download_button(
+                "⬇️ Descargar resumen mensual",
+                data=to_excel_bytes(st.session_state["resumen_mensual"]),
+                file_name="Resumen_Mensual.xlsx"
+            )
+
         def to_excel_bytes(df):
             output = BytesIO()
-            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            with pd.ExcelWriter(output, engine="openpyxl", date_format="DD/MM/YYYY") as writer:
                 df.to_excel(writer, index=False)
             return output.getvalue()
 
