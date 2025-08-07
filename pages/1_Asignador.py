@@ -9,9 +9,9 @@ from db_manager import (
 )
 
 st.set_page_config(page_title="Asignador", layout="wide")
-if st.session_state.get("reset"):
-    st.session_state["reset"] = False
-    st.stop()
+if "reset_db_done" in st.session_state and st.session_state["reset_db_done"]:
+    st.session_state["reset_db_done"] = False
+    st.rerun()
     
 st.title("📋 Asignador de Turnos (Excel o Generador Manual)")
 
@@ -34,11 +34,10 @@ file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xl
 # Botón para resetear
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
-    from db_manager import reset_db
     reset_db()
     st.sidebar.success("✅ Base de datos reiniciada correctamente.")
     st.session_state["reset"] = True
-    st.experimental_rerun()
+    st.session_state["reset_db_done"] = True
 
 
 # Selector de método de demanda (página principal)
@@ -204,7 +203,7 @@ if file_staff:
 
         guardar_asignaciones(df_assign)
 
-        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"])
+        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"]).dt.strftime("%d/%m/%Y")
         df_assign["Año"] = df_assign["Fecha"].dt.year
         df_assign["Mes"] = df_assign["Fecha"].dt.month
 
@@ -223,17 +222,15 @@ if file_staff:
         guardar_resumen_mensual(resumen_mensual)
         subir_bd_a_drive(FILE_ID)
 
-
         # Convertir fechas al formato dd/mm/yyyy para el Excel
         df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"]).dt.strftime("%d/%m/%Y")
+
         # Guardar los DataFrames en el estado de sesión para mantenerlos después de recargar
         st.session_state["df_assign"] = df_assign
         st.session_state["resumen_mensual"] = resumen_mensual
 
-        
         st.subheader("📊 Resumen mensual")
         st.dataframe(resumen_mensual)
-
         # Mostrar botones solo si los DataFrames siguen disponibles en sesión
         if "df_assign" in st.session_state:
             st.download_button(
