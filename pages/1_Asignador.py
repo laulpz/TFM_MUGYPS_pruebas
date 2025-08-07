@@ -23,15 +23,17 @@ turnos = ["Mañana", "Tarde", "Noche"]
 
 st.sidebar.header("📂 Suba la plantilla de personal")
 
-file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xlsx"])
-metodo = st.sidebar.selectbox("📈 Método para ingresar demanda:", ["Desde Excel", "Generar manualmente"])
-
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
     from db_manager import reset_db
     reset_db()
     st.sidebar.success("✅ Base de datos reiniciada correctamente.")
     st.experimental_rerun()
+
+
+file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xlsx"])
+
+metodo = st.sidebar.selectbox("📈 Método para ingresar demanda:", ["Desde Excel", "Generar manualmente"])
 
 if file_staff:
     staff = pd.read_excel(file_staff)
