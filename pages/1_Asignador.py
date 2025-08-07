@@ -203,7 +203,7 @@ if file_staff:
 
         guardar_asignaciones(df_assign)
 
-        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"]).dt.strftime("%d/%m/%Y")
+        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"], dayfirst=True)
         df_assign["Año"] = df_assign["Fecha"].dt.year
         df_assign["Mes"] = df_assign["Fecha"].dt.month
 
