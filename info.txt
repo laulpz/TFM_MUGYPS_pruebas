@@ -1,1 +1,2 @@
-ya estructura multipagina de la app, pero pestaña asignador en blanco
+Funciona asignación y aprobación. No base de datos
+Solo 1 pestaña en la app
