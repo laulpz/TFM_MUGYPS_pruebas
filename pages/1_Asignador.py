@@ -212,3 +212,6 @@ def ejecutar_asignador():
                 )
     else:
         st.info("🔄 Por favor, suba los dos archivos (personal y demanda) para comenzar.")
+
+
+ejecutar_asignador()
