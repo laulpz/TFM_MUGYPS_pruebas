@@ -199,8 +199,8 @@ if file_staff:
             "Fecha": "count"
         }).rename(columns={
             "ID_Enfermera": "ID",
-            "Fecha": "Jornadas Asignadas",
-            "Horas_Acumuladas": "Horas Asignadas"
+            "Fecha": "Jornadas_Asignadas",
+            "Horas_Acumuladas": "Horas_Asignadas"
         })
 
         guardar_resumen_mensual(resumen_mensual)
