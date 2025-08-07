@@ -9,11 +9,32 @@ from db_manager import (
 )
 
 st.set_page_config(page_title="Asignador", layout="wide")
+st.title("📋 Asignador de Turnos de Enfermería")
+
+if "estado" not in st.session_state:
+    st.session_state["estado"] = "inicial"
+    
+# Manejar recarga tras reseteo
 if "reset_db_done" in st.session_state and st.session_state["reset_db_done"]:
     st.session_state["reset_db_done"] = False
     st.rerun()
-    
-st.title("📋 Asignador de Turnos (Excel o Generador Manual)")
+
+# Botón para reiniciar solo la interfaz
+st.sidebar.markdown("---")
+if st.sidebar.button("🔄 Reiniciar aplicación"):
+    for k in list(st.session_state.keys()):
+        if k not in ["reset_db_done"]:
+            del st.session_state[k]
+    st.rerun()
+
+
+# Botón para resetear
+st.sidebar.markdown("---")
+if st.sidebar.button("🗑️ Resetear base de datos"):
+    reset_db()
+    st.sidebar.success("✅ Base de datos reiniciada correctamente.")
+    st.session_state["reset"] = True
+    st.session_state["reset_db_done"] = True
 
 # Configuración de base de datos
 FILE_ID = "1zqAyIB1BLfCc2uH1v29r-clARHoh2o_s"
@@ -27,21 +48,19 @@ BASE_MAX_JORNADAS = {"Mañana": 219, "Tarde": 219, "Noche": 147}
 dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 turnos = ["Mañana", "Tarde", "Noche"]
 
+
 # Subida plantilla de personal
-st.sidebar.header("📂 Suba la plantilla de personal")
-file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xlsx"])
+st.subheader("📂  Suba la plantilla de personal")
+file_staff = st.file_uploader("Plantilla de personal (.xlsx)", type=["xlsx"])
 
-# Botón para resetear
-st.sidebar.markdown("---")
-if st.sidebar.button("🗑️ Resetear base de datos"):
-    reset_db()
-    st.sidebar.success("✅ Base de datos reiniciada correctamente.")
-    st.session_state["reset"] = True
-    st.session_state["reset_db_done"] = True
+if not file_staff:
+    st.info("🛈 Por favor, suba una plantilla de personal para continuar con la planificación.")
+    st.stop()
 
+# Carga plantilla
+staff = pd.read_excel(file_staff)
+staff.columns = staff.columns.str.strip()
 
-# Selector de método de demanda (página principal)
-metodo = st.selectbox("📈 Selecciona el método para ingresar la demanda:", ["Desde Excel", "Generar manualmente"])
 
 if file_staff:
     staff = pd.read_excel(file_staff)
@@ -63,19 +82,25 @@ if file_staff:
         for _, row in staff.iterrows()
     }
 
+
     st.subheader("👩‍⚕️ Personal cargado")
     st.dataframe(staff)
 
+    # Selector de método de demanda (página principal)
+    metodo = st.selectbox("📈 Selecciona el método para ingresar la demanda:", ["Generar manualmente","Desde Excel"])
     demand = None
 
     if metodo == "Desde Excel":
-        file_demand = st.sidebar.file_uploader("Demanda de turnos (.xlsx)", type=["xlsx"])
+        st.subheader("📂 Subir archivo de demanda desde Excel")
+        file_demand = st.file_uploader("Demanda de turnos (.xlsx)", type=["xlsx"], key="file_demand_excel")
         if file_demand:
             demand = pd.read_excel(file_demand)
             demand.columns = demand.columns.str.strip()
-            st.subheader("📆 Demanda desde archivo")
+            st.success("✅ Demanda cargada desde Excel")
             st.dataframe(demand)
-
+        else:
+            st.info("🛈 Por favor, seleccione un archivo Excel con la demanda.")
+            
     elif metodo == "Generar manualmente":
         st.subheader("⚙️ Generador de Demanda Manual")
         unidad = st.selectbox("Unidad Hospitalaria", ["Medicina Interna", "UCI", "Urgencias", "Oncología", "Quirófano"])
@@ -98,6 +123,7 @@ if file_staff:
 
         fechas = [fecha_inicio + timedelta(days=i) for i in range((fecha_fin - fecha_inicio).days + 1)]
         demanda = []
+        
         for fecha in fechas:
             dia_cast = dias_semana[fecha.weekday()]
             for turno in turnos:
@@ -108,10 +134,16 @@ if file_staff:
                     "Personal_Requerido": demanda_por_dia[dia_cast][turno]
                 })
         demand = pd.DataFrame(demanda)
-        st.subheader("📆 Demanda generada")
-        st.dataframe(demand)
+        st.session_state['demand'] = demand
+        st.session_state['estado'] = 'demanda_generada'
 
-    if demand is not None and st.button("🚀 Ejecutar asignación"):
+    
+    
+    if st.session_state.get('estado') == 'demanda_generada' and st.button("🚀 Ejecutar asignación"):
+        #Mostrar demanda
+        st.subheader("Demanda generada")
+        st.dataframe(demand)
+        
         staff_hours = {row.ID: 0 for _, row in staff.iterrows()}
         staff_dates = {row.ID: [] for _, row in staff.iterrows()}
         assignments, uncovered = [], []
@@ -199,62 +231,101 @@ if file_staff:
         df_assign = pd.DataFrame(assignments)
         df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
         st.success("✅ Asignación completada")
-        st.dataframe(df_assign)
-
-        guardar_asignaciones(df_assign)
-
-        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"], dayfirst=True)
-        df_assign["Año"] = df_assign["Fecha"].dt.year
-        df_assign["Mes"] = df_assign["Fecha"].dt.month
-
-        resumen_mensual = df_assign.groupby(
-            ["ID_Enfermera", "Unidad", "Turno", "Jornada", "Año", "Mes"],
-            as_index=False
-        ).agg({
-            "Horas_Acumuladas": "sum",
-            "Fecha": "count"
-        }).rename(columns={
-            "ID_Enfermera": "ID",
-            "Fecha": "Jornadas_Asignadas",
-            "Horas_Acumuladas": "Horas_Asignadas"
-        })
-
-        guardar_resumen_mensual(resumen_mensual)
-        subir_bd_a_drive(FILE_ID)
-
-        # Convertir fechas al formato dd/mm/yyyy para el Excel
-        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"]).dt.strftime("%d/%m/%Y")
-
-        # Guardar los DataFrames en el estado de sesión para mantenerlos después de recargar
+        # Guardar asignación temporal para revisión/descarga
         st.session_state["df_assign"] = df_assign
-        st.session_state["resumen_mensual"] = resumen_mensual
+        st.session_state["estado"] = "asignado"
+       # st.dataframe(df_assign)
 
-        st.subheader("📊 Resumen mensual")
-        st.dataframe(resumen_mensual)
+    st.divider()
+
+    # Visualización según el estado
+    if st.session_state["estado"] == "asignado":
+        st.subheader("📝 Asignación sugerida")
+        st.dataframe(st.session_state["df_assign"])
 
         def to_excel_bytes(df):
             output = BytesIO()
             with pd.ExcelWriter(output, engine="openpyxl", date_format="DD/MM/YYYY") as writer:
                 df.to_excel(writer, index=False)
             return output.getvalue()
+
+        st.download_button(
+            "⬇️ Descargar planilla sugerida",
+            data=to_excel_bytes(st.session_state["df_assign"]),
+            file_name="Planilla_Sugerida.xlsx"
+        )
+
+        st.subheader("¿Desea aprobar esta asignación?")
+        col1, col2 = st.columns(2)
+
+        if col1.button("✅ Aprobar asignación"):
+            # Obtener asignación original
+            df_assign = st.session_state["df_assign"].copy()
+
+            # Convertir fecha en formato real para resumen
+            df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"], dayfirst=True, errors='coerce')
+            if df_assign["Fecha"].isna().any():
+                st.error("❌ Error: Algunas fechas no se pudieron interpretar correctamente. No se puede generar el resumen.")
+                st.stop()
+
+            # Generar resumen
+            guardar_asignaciones(df_assign)
+
+            df_assign["Año"] = df_assign["Fecha"].dt.year
+            df_assign["Mes"] = df_assign["Fecha"].dt.month
+
+            resumen_mensual = df_assign.groupby(
+                ["ID_Enfermera", "Unidad", "Turno", "Jornada", "Año", "Mes"],
+                as_index=False
+            ).agg({
+                "Horas_Acumuladas": "sum",
+                "Fecha": "count"
+            }).rename(columns={
+                "ID_Enfermera": "ID",
+                "Fecha": "Jornadas_Asignadas",
+                "Horas_Acumuladas": "Horas_Asignadas"
+            })
+
+            guardar_resumen_mensual(resumen_mensual)
+            subir_bd_a_drive(FILE_ID)
+
+            # Para exportación, mostrar la fecha como string sin alterar el original
+            df_vista = df_assign.copy()
+            df_vista["Fecha"] = df_vista["Fecha"].dt.strftime("%d/%m/%Y")
+
+            # Guardar en sesión para mostrar y descargar
+            st.session_state["df_assign"] = df_vista
+            st.session_state["resumen_mensual"] = resumen_mensual
+            st.session_state["estado"] = "aprobado"
+
+        elif col2.button("🔁 Volver a generar asignación"):
+            del st.session_state["df_assign"]
+            st.session_state["estado"] = "inicial"
+            st.rerun()
+
+    elif st.session_state["estado"] == "aprobado":
+        st.success("✅ Asignación aprobada")
+        st.subheader("📄 Asignación final")
+        st.dataframe(st.session_state["df_assign"])
+
         
-        # Mostrar botones solo si los DataFrames siguen disponibles en sesión
-        if "df_assign" in st.session_state:
-            st.download_button(
-                "⬇️ Descargar planilla asignada",
-                data=to_excel_bytes(st.session_state["df_assign"]),
-                file_name="Planilla_Asignada.xlsx"
-            )
+        st.subheader("📊 Resumen mensual")
+        st.dataframe(st.session_state["resumen_mensual"])
 
-        if "resumen_mensual" in st.session_state:
-            st.download_button(
-                "⬇️ Descargar resumen mensual",
-                data=to_excel_bytes(st.session_state["resumen_mensual"]),
-                file_name="Resumen_Mensual.xlsx"
-            )
+        def to_excel_bytes(df):
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine="openpyxl", date_format="DD/MM/YYYY") as writer:
+                df.to_excel(writer, index=False)
+            return output.getvalue()
 
-        if uncovered:
-            df_uncov = pd.DataFrame(uncovered)
-            st.subheader("⚠️ Turnos sin cubrir")
-            st.dataframe(df_uncov)
-            st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(df_uncov), file_name="Turnos_Sin_Cubrir.xlsx")
+        st.download_button(
+            "⬇️ Descargar planilla asignada",
+            data=to_excel_bytes(st.session_state["df_assign"]),
+            file_name="Planilla_Asignada.xlsx"
+        )
+        
+        st.download_button(
+            "⬇️ Descargar resumen mensual",
+            data=to_excel_bytes(st.session_state["resumen_mensual"]),
+            file_name="Resumen_Mensual.xlsx"
+        )
