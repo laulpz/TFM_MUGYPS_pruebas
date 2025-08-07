@@ -1,0 +1,34 @@
+# Entornos virtuales
+venv/
+.env/
+.venv/
+
+# Archivos de configuración personales
+*.env
+*.DS_Store
+*.vscode/
+.idea/
+
+# Archivos de Python temporales
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos generados por Jupyter o IPython
+.ipynb_checkpoints
+
+# Archivos temporales del sistema operativo
+Thumbs.db
+Desktop.ini
+
+# Archivos de Excel generados por la app
+*.xlsx
+
+# Archivos de salida
+*.log
+*.bak
+*.tmp
+
+# Caché de Streamlit
+.streamlit/config.toml
+.streamlit/secrets.toml
