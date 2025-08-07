@@ -199,8 +199,6 @@ if file_staff:
             "Fecha": "count"
         }).rename(columns={
             "ID_Enfermera": "ID",
-            "Unidad": "Unidad Asignada",
-            "Turno": "Turno_Contrato",
             "Fecha": "Jornadas Asignadas",
             "Horas_Acumuladas": "Horas Asignadas"
         })
