@@ -147,19 +147,20 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
                 return len(staff_dates[row.ID]) < staff_max_jornadas[row.ID]
             
             def consecutive_ok(nurse_id):
-                fechas = staff_dates[nurse_id]
-                if not fechas: return True
-                last_date = max(fechas)
-                if (datetime.strptime(fecha, "%Y-%m-%d") - datetime.strptime(last_date, "%Y-%m-%d")).days == 1:
-                    consec = 1
-                    check_date = datetime.strptime(last_date, "%Y-%m-%d")
-                    while True:
-                        check_date -= timedelta(days=1)
-                        if check_date.strftime("%Y-%m-%d") in fechas:
-                            consec += 1
-                            if consec >= 8: return False
-                         else: break
-                return True
+                fechas_asignadas = staff_dates[nurse_id]
+                if not fechas_asignadas: return True
+                # Convertir todas las fechas a datetime.date y ordenarlas
+                fechas_datetime = sorted([datetime.strptime(f, "%Y-%m-%d").date() for f in fechas_asignadas])
+                fecha_actual = datetime.strptime(fecha, "%Y-%m-%d").date()
+    
+                # Verificar si la fecha_actual sería el 8vo día consecutivo
+                consecutivos = 1
+                for i in range(1, 8):
+                    fecha_anterior = fecha_actual - timedelta(days=i)
+                    if fecha_anterior in fechas_datetime:
+                        consecutivos += 1
+                    else: break
+                return consecutivos < 8
 
             def descanso_12h_ok(nurse_id):
                 fechas_previas = staff_dates[nurse_id]
