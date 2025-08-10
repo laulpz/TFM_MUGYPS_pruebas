@@ -106,10 +106,10 @@ if file_staff None and st.button("🚀 Ejecutar asignación"):
         for turno in turnos:
              demanda.append({
                  "Fecha": fecha.strftime("%Y-%m-%d"),
-                  "Unidad": unidad,
-                  "Turno": turno,
-                  "Personal_Requerido": demanda_por_dia[dia_cast][turno]
-            })
+                 "Unidad": unidad,
+                 "Turno": turno,
+                 "Personal_Requerido": demanda_por_dia[dia_cast][turno]
+             })
     demand = pd.DataFrame(demanda)
     #st.subheader("📆 Demanda generada")
     #st.dataframe(demand)
@@ -139,7 +139,7 @@ if file_staff None and st.button("🚀 Ejecutar asignación"):
             cands["Jornadas_Asignadas"] = cands["ID"].map(lambda x: len(staff_dates[x]))
 
             def jornada_ok(row):
-                 return len(staff_dates[row.ID]) < staff_max_jornadas[row.ID]
+                return len(staff_dates[row.ID]) < staff_max_jornadas[row.ID]
             
             def consecutive_ok(nurse_id):
                 fechas = staff_dates[nurse_id]
@@ -210,12 +210,12 @@ if file_staff None and st.button("🚀 Ejecutar asignación"):
          as_index=False
      ).agg({
         "Horas_Acumuladas": "sum",
-         "Fecha": "count"
+        "Fecha": "count"
     }).rename(columns={
-         "ID_Enfermera": "ID",
-         "Fecha": "Jornadas_Asignadas",
-         "Horas_Acumuladas": "Horas_Asignadas"
-     })
+        "ID_Enfermera": "ID",
+        "Fecha": "Jornadas_Asignadas",
+        "Horas_Acumuladas": "Horas_Asignadas"
+    })
 
     guardar_resumen_mensual(resumen_mensual)
     subir_bd_a_drive(FILE_ID)
