@@ -46,15 +46,16 @@ file_staff = st.session_state["file_staff"]
 #Configurar la demanda de turnos
 metodo = st.sidebar.selectbox("2️⃣📈 Método para ingresar demanda:", ["Generar manualmente","Desde Excel"])
 
+"""
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
     reset_db()
     st.sidebar.success("✅ Base de datos reiniciada correctamente.")
     #st.experimental_rerun() #VERSION 04/08: comprobar si es necesario, ahora me da error
-    for key in list(st.session_state.keys()): #VERSION 31/07. Está al final del todo
+    for key in list(st.session_state.keys()): #VERSION 31/07. Está al final del todo. El mensaje de reinicio correcto desaparece rápido...
         del st.session_state[key]
     st.rerun()
-
+"""
 
 
 #Si se ha cargado el archivo de personal
@@ -263,3 +264,11 @@ if file_staff:
             st.subheader("⚠️ Turnos sin cubrir")
             st.dataframe(df_uncov)
             st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(df_uncov), file_name="Turnos_Sin_Cubrir.xlsx")
+
+if st.sidebar.button("🗑️ Resetear base de datos"):
+    reset_db()
+    st.sidebar.success("✅ Base de datos reiniciada correctamente.")
+    #st.experimental_rerun() #VERSION 04/08: comprobar si es necesario, ahora me da error
+    for key in list(st.session_state.keys()): #VERSION 31/07. Está al final del todo. El mensaje de reinicio correcto desaparece rápido...
+        del st.session_state[key]
+    st.rerun()
