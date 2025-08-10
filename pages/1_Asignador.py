@@ -61,7 +61,6 @@ if file_staff:
 
 file_staff = st.session_state["file_staff"]
 
-
 #Configurar la demanda de turnos
 metodo = st.sidebar.selectbox("2️⃣📈 Método para ingresar demanda:", ["Generar manualmente","Desde Excel"])
 if metodo == "Desde Excel":
@@ -86,15 +85,14 @@ elif metodo == "Generar manualmente":
         
     demanda_por_dia = {}
     for dia in dias_semana:
-         st.markdown(f"**{dia}**")
-         cols = st.columns(3)
+        st.markdown(f"**{dia}**")
+        cols = st.columns(3)
         demanda_por_dia[dia] = {}
         valor_default = 8 if dia in dias_semana[:5] else 4
         for i, turno in enumerate(turnos):
             demanda_por_dia[dia][turno] = cols[i].number_input(
                 label=f"{turno}", min_value=0, max_value=20, value=valor_default, key=f"{dia}_{turno}"
              )
-
 
 if file_staff None and st.button("🚀 Ejecutar asignación"):
     staff = pd.read_excel(file_staff)
@@ -111,7 +109,7 @@ if file_staff None and st.button("🚀 Ejecutar asignación"):
                   "Unidad": unidad,
                   "Turno": turno,
                   "Personal_Requerido": demanda_por_dia[dia_cast][turno]
-         })
+            })
     demand = pd.DataFrame(demanda)
     #st.subheader("📆 Demanda generada")
     #st.dataframe(demand)
@@ -142,66 +140,62 @@ if file_staff None and st.button("🚀 Ejecutar asignación"):
 
             def jornada_ok(row):
                  return len(staff_dates[row.ID]) < staff_max_jornadas[row.ID]
-
-             def consecutive_ok(nurse_id):
-                 fechas = staff_dates[nurse_id]
-                if not fechas:
-                     return True
+            
+            def consecutive_ok(nurse_id):
+                fechas = staff_dates[nurse_id]
+                if not fechas: return True
                 last_date = max(fechas)
                 if (datetime.strptime(fecha, "%Y-%m-%d") - datetime.strptime(last_date, "%Y-%m-%d")).days == 1:
-                     consec = 1
-                     check_date = datetime.strptime(last_date, "%Y-%m-%d")
+                    consec = 1
+                    check_date = datetime.strptime(last_date, "%Y-%m-%d")
                     while True:
-                         check_date -= timedelta(days=1)
-                         if check_date.strftime("%Y-%m-%d") in fechas:
+                        check_date -= timedelta(days=1)
+                        if check_date.strftime("%Y-%m-%d") in fechas:
                             consec += 1
-                               if consec >= 8:
-                                return False
-                         else:
-                               break
+                            if consec >= 8: return False
+                         else: break
                 return True
 
-             def descanso_12h_ok(nurse_id):
-                 fechas_previas = staff_dates[nurse_id]
-                 if not fechas_previas:
-                      return True
+            def descanso_12h_ok(nurse_id):
+                fechas_previas = staff_dates[nurse_id]
+                if not fechas_previas:
+                    return True
                 fecha_actual = datetime.strptime(fecha, "%Y-%m-%d")
-                 for fecha_ant in fechas_previas:
-                      fecha_prev = datetime.strptime(fecha_ant, "%Y-%m-%d")
-                      if abs((fecha_actual - fecha_prev).total_seconds()) < 12 * 3600:
-                          return False
-                 return True
+                for fecha_ant in fechas_previas:
+                    fecha_prev = datetime.strptime(fecha_ant, "%Y-%m-%d")
+                    if abs((fecha_actual - fecha_prev).total_seconds()) < 12 * 3600:
+                        return False
+                return True
 
-              def hours_ok(row):
-                 return staff_hours[row.ID] + SHIFT_HOURS[turno] <= staff_max_hours[row.ID]
+            def hours_ok(row):
+                return staff_hours[row.ID] + SHIFT_HOURS[turno] <= staff_max_hours[row.ID]
 
-             cands = cands[cands.apply(jornada_ok, axis=1)]
-             cands = cands[cands["ID"].apply(consecutive_ok)]
-             cands = cands[cands["ID"].apply(descanso_12h_ok)]
-             cands = cands[cands.apply(hours_ok, axis=1)]
-             cands = cands.sort_values(by="Horas_Asignadas")
+            cands = cands[cands.apply(jornada_ok, axis=1)]
+            cands = cands[cands["ID"].apply(consecutive_ok)]
+            cands = cands[cands["ID"].apply(descanso_12h_ok)]
+            cands = cands[cands.apply(hours_ok, axis=1)]
+            cands = cands.sort_values(by="Horas_Asignadas")
 
         if not cands.empty:
             for _, cand in cands.iterrows():
-                 if assigned_count >= req: break
-                 assignments.append({
-                     "Fecha": fecha,
-                      "Unidad": unidad,
-                      "Turno": turno,
-                      "ID_Enfermera": cand.ID,
-                      "Jornada": cand.Jornada,
-                      "Horas_Acumuladas": SHIFT_HOURS[turno],
-                      "Confirmado": 0
+                if assigned_count >= req: break
+                assignments.append({
+                    "Fecha": fecha,
+                    "Unidad": unidad,
+                    "Turno": turno,
+                    "ID_Enfermera": cand.ID,
+                    "Jornada": cand.Jornada,
+                    "Horas_Acumuladas": SHIFT_HOURS[turno],
+                    "Confirmado": 0
                 })
                 staff_hours[cand.ID] += SHIFT_HOURS[turno]
-                 staff_dates[cand.ID].append(fecha)
+                staff_dates[cand.ID].append(fecha)
                 assigned_count += 1
-
         if assigned_count < req:
             uncovered.append({"Fecha": fecha, "Unidad": unidad, "Turno": turno, "Faltan": req - assigned_count})
 
     df_assign = pd.DataFrame(assignments)
-    df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
+    #Duda 10/08: df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
     st.success("✅ Asignación completada")
     st.dataframe(df_assign)
 
