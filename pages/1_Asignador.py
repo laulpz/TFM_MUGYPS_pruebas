@@ -211,7 +211,8 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     st.success("✅ Asignación completada")
     st.dataframe(df_assign)
 
-    guardar_asignaciones(df_assign)
+    #guardar_asignaciones(df_assign) - 10/08
+    guardar_asignaciones(st.session_state["df_assign"])
 
     df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"])
     df_assign["Año"] = df_assign["Fecha"].dt.year
