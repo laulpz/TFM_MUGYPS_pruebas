@@ -39,30 +39,11 @@ st.sidebar.header("1️⃣📂 Suba la plantilla de personal")
 file_staff = st.sidebar.file_uploader("El archivo debe contener las siguientes columnas: Plantilla de personal (.xlsx)", type=["xlsx"])
 if file_staff:
     st.session_state["file_staff"] = file_staff
-    def parse_dates(cell):
-        if pd.isna(cell): return []
-        try: return [d.strip() for d in ast.literal_eval(str(cell))]
-        except: return [d.strip() for d in str(cell).split(',')]
-
-    staff["Fechas_No_Disponibilidad"] = staff["Fechas_No_Disponibilidad"].apply(parse_dates)
-    
-    #Para jornadas parciales definir 80%
-    staff_max_hours = {
-        row.ID: BASE_MAX_HOURS[row.Turno_Contrato] * (0.8 if row.Jornada == "Parcial" else 1)
-        for _, row in staff.iterrows()
-    }
-    staff_max_jornadas = {
-        row.ID: BASE_MAX_JORNADAS[row.Turno_Contrato] * (0.8 if row.Jornada == "Parcial" else 1)
-        for _, row in staff.iterrows()
-    }
-
-    st.subheader("👩‍⚕️ Personal cargado")
-    st.dataframe(staff)
-
 file_staff = st.session_state["file_staff"]
-
+    
 #Configurar la demanda de turnos
 metodo = st.sidebar.selectbox("2️⃣📈 Método para ingresar demanda:", ["Generar manualmente","Desde Excel"])
+demand = None
 if metodo == "Desde Excel":
     file_demand = st.sidebar.file_uploader("Demanda de turnos (.xlsx)", type=["xlsx"])
     if file_demand:
@@ -93,13 +74,6 @@ elif metodo == "Generar manualmente":
             demanda_por_dia[dia][turno] = cols[i].number_input(
                 label=f"{turno}", min_value=0, max_value=20, value=valor_default, key=f"{dia}_{turno}"
              )
-
-if file_staff None and st.button("🚀 Ejecutar asignación"):
-    staff = pd.read_excel(file_staff)
-    staff.columns = staff.columns.str.strip()
-
-    #chequear, ligeramente distinto
-    demand = None
     demanda = []
     for fecha in fechas:
         dia_cast = dias_semana[fecha.weekday()]
@@ -111,6 +85,37 @@ if file_staff None and st.button("🚀 Ejecutar asignación"):
                  "Personal_Requerido": demanda_por_dia[dia_cast][turno]
              })
     demand = pd.DataFrame(demanda)
+
+if file_staff is not None and st.button("🚀 Ejecutar asignación"):
+    staff = pd.read_excel(file_staff)
+    staff.columns = staff.columns.str.strip()
+
+    def parse_dates(cell):
+        if pd.isna(cell): return []
+        try: return [d.strip() for d in ast.literal_eval(str(cell))]
+        except: return [d.strip() for d in str(cell).split(',')]
+    
+    staff = pd.read_excel(file_staff)
+    staff.columns = staff.columns.str.strip()
+    staff["Fechas_No_Disponibilidad"] = staff["Fechas_No_Disponibilidad"].apply(parse_dates)
+    
+    #Para jornadas parciales definir 80%
+    staff_max_hours = {
+        row.ID: BASE_MAX_HOURS[row.Turno_Contrato] * (0.8 if row.Jornada == "Parcial" else 1)
+        for _, row in staff.iterrows()
+    }
+    staff_max_jornadas = {
+        row.ID: BASE_MAX_JORNADAS[row.Turno_Contrato] * (0.8 if row.Jornada == "Parcial" else 1)
+        for _, row in staff.iterrows()
+    }
+
+    st.subheader("👩‍⚕️ Personal cargado")
+    st.dataframe(staff)
+
+
+    #chequear, ligeramente distinto
+    #duda de si aqui va el demand de generar manualmente
+
     #st.subheader("📆 Demanda generada")
     #st.dataframe(demand)
     #chequear, ligeramente distinto---------------------
@@ -224,8 +229,8 @@ if file_staff None and st.button("🚀 Ejecutar asignación"):
     st.dataframe(resumen_mensual)
 
     def to_excel_bytes(df):
-         output = BytesIO()
-         with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
             df.to_excel(writer, index=False)
         return output.getvalue()
 
