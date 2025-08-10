@@ -110,14 +110,10 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     st.subheader("👩‍⚕️ Personal cargado")
     st.dataframe(staff)
 
-
-    #chequear, ligeramente distinto
-    #duda de si aqui va el demand de generar manualmente
-
-    #st.subheader("📆 Demanda generada")
-    #st.dataframe(demand)
-    #chequear, ligeramente distinto---------------------
-
+    #Aquí está obviando las horas anteriores. En código 31/07 algo así: 
+    #df_prev = cargar_horas()
+    #staff_hours = dict(zip(df_prev["ID"], df_prev["Horas_Acumuladas"])) if not df_prev.empty else {row.ID: 0 for _, row in staff.iterrows()}
+    #staff_jornadas = dict.fromkeys(staff["ID"], 0)
     staff_hours = {row.ID: 0 for _, row in staff.iterrows()}
     staff_dates = {row.ID: [] for _, row in staff.iterrows()}
     assignments, uncovered = [], []
@@ -131,6 +127,9 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
         st.stop()
 
     demand_sorted = demand.sort_values(by="Fecha")
+    #st.subheader("📆 Demanda generada")
+    #st.dataframe(demand)
+   
 
     for _, dem in demand_sorted.iterrows():
         fecha = dem["Fecha"]
@@ -158,7 +157,6 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
                 # Convertir todas las fechas a datetime.date y ordenarlas
                 fechas_datetime = sorted([datetime.strptime(f, "%Y-%m-%d").date() for f in fechas_asignadas])
                 fecha_actual = datetime.strptime(fecha, "%Y-%m-%d").date()
-    
                 # Verificar si la fecha_actual sería el 8vo día consecutivo
                 consecutivos = 1
                 for i in range(1, 8):
@@ -197,7 +195,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
                     "Turno": turno,
                     "ID_Enfermera": cand.ID,
                     "Jornada": cand.Jornada,
-                    "Horas_Acumuladas": SHIFT_HOURS[turno],
+                    "Horas_Acumuladas": SHIFT_HOURS[turno], # staff_hours[cand.ID] + SHIFT_HOURS[turno]
                 })
                 staff_hours[cand.ID] += SHIFT_HOURS[turno]
                 staff_dates[cand.ID].append(fecha)
@@ -206,6 +204,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
             uncovered.append({"Fecha": fecha, "Unidad": unidad, "Turno": turno, "Faltan": req - assigned_count})
 
     df_assign = pd.DataFrame(assignments)
+    df_uncov = pd.DataFrame(uncovered) if uncovered else None #NEW 10/08
     df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
     st.success("✅ Asignación completada")
     st.dataframe(df_assign)
@@ -249,6 +248,12 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
           st.subheader("⚠️ Turnos sin cubrir")
           st.dataframe(df_uncov)
           st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(df_uncov), file_name="Turnos_Sin_Cubrir.xlsx")
+
+
+
+
+
+
 
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
