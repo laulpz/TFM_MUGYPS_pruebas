@@ -265,7 +265,7 @@ if file_staff:
             st.dataframe(df_uncov)
             st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(df_uncov), file_name="Turnos_Sin_Cubrir.xlsx")
 
-
+st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
     reset_db()
     st.sidebar.success("✅ Base de datos reiniciada correctamente.")
