@@ -208,19 +208,18 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     #-------------------------------------------------------------------------
     df_uncov = pd.DataFrame(uncovered) if uncovered else None 
 
-    """
-    resumen_horas = pd.DataFrame([{
-        "ID": id_,
-        "Turno_Contrato": staff.loc[staff.ID == id_, "Turno_Contrato"].values[0],
-        "Horas_Acumuladas": horas,
-        "Jornadas": len(staff_dates[id_])
-    } for id_, horas in staff_hours.items()])
+    #Parte de código del 31/07. Es unr esumen local, redundante con resumen_mensual que sí se guarda en BBDD
+    #resumen_horas = pd.DataFrame([{
+        #"ID": id_,
+        #"Turno_Contrato": staff.loc[staff.ID == id_, "Turno_Contrato"].values[0],
+        #"Horas_Acumuladas": horas,
+        #"Jornadas": len(staff_dates[id_])
+    #} for id_, horas in staff_hours.items()])
 
-    if not df_prev.empty:
-        resumen_horas = pd.concat([df_prev, resumen_horas]).groupby(["ID", "Turno_Contrato"], as_index=False).agg({"Horas_Acumuladas": "sum", "Jornadas": "sum"})
+    #if not df_prev.empty:
+        #resumen_horas = pd.concat([df_prev, resumen_horas]).groupby(["ID", "Turno_Contrato"], as_index=False).agg({"Horas_Acumuladas": "sum", "Jornadas": "sum"})
     
-    st.session_state["resumen_horas"] = resumen_horas
-    """
+    #st.session_state["resumen_horas"] = resumen_horas
     
     st.session_state["asignacion_completada"] = True
     st.session_state["df_assign"] = df_assign
@@ -277,6 +276,32 @@ if st.session_state["asignacion_completada"]:
 
 st.markdown("### ✅ Confirmación de asignación")
 aprobacion = st.radio("¿Deseas aprobar esta asignación?", ["Pendiente", "Aprobar", "Rehacer"], index=0)
+if aprobacion == "Aprobar":
+    #OJO PORQUE AHORA ANTES LO ESTOY HACIENDO SIN VALIDACION, HAY QUE DEPURAR UN POCO EL CODIGO EN QUE SE GUARDA EN BBDD Y QUE SE IMPRIME COMO RESUMEN MENSUl
+    guardar_asignaciones(st.session_state["df_assign"])
+    guardar_resumen_mensual(resumen_mensual)
+    subir_bd_a_drive(FILE_ID)
+    st.success("📥 Datos guardados en la base de datos correctamente.")
+
+    st.subheader("🧾 Resumen Asignación Mensual por profesional")
+    st.dataframe(st.session_state["resumen_horas"])
+    st.download_button("⬇️ Descargar resumen mensual por profesional",
+                        data=to_excel_bytes(st.session_state["resumen_horas"]),
+                        file_name="Resumen_Mensual_Profesional.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+        
+    # Recalcular resumen anual únicamente desde la asignación actual
+        
+elif aprobacion == "Rehacer":
+    st.session_state["asignacion_completada"] = False
+    st.rerun()
+    #st.experimental_rerun()
+
+if st.button("🔄 Reiniciar aplicación"):
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.rerun()
 
 
 
