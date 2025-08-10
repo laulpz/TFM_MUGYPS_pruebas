@@ -47,6 +47,7 @@ file_staff = st.session_state["file_staff"]
 metodo = st.sidebar.selectbox("2️⃣📈 Método para ingresar demanda:", ["Generar manualmente","Desde Excel"])
 
 """
+#10/08: Ahora este boton esta all final. Creo que mejor. pero dejo aqui por si acaso
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
     reset_db()
@@ -58,7 +59,7 @@ if st.sidebar.button("🗑️ Resetear base de datos"):
 """
 
 
-#Si se ha cargado el archivo de personal
+#Si se ha cargado el archivo de personal leer archivo
 if file_staff:
     staff = pd.read_excel(file_staff)
     staff.columns = staff.columns.str.strip()
@@ -85,7 +86,7 @@ if file_staff:
 
 
 
-
+    #####################################3
     
     demand = None
 
@@ -97,12 +98,15 @@ if file_staff:
             st.subheader("📆 Demanda desde archivo")
             st.dataframe(demand)
 
+    #toda esta parte esta fuera de cualquier loop o if en archivo de 31?07
+    #----------------------------------------------------------
     elif metodo == "Generar manualmente":
         st.subheader("⚙️ Generador de Demanda Manual")
         unidad = st.selectbox("Unidad Hospitalaria", ["Medicina Interna", "UCI", "Urgencias", "Oncología", "Quirófano"])
         col1, col2 = st.columns(2)
         fecha_inicio = col1.date_input("Fecha de inicio", value=date(2025, 1, 1))
         fecha_fin = col2.date_input("Fecha de fin", value=date(2025, 1, 31))
+        fechas = [fecha_inicio + timedelta(days=i) for i in range((fecha_fin - fecha_inicio).days + 1)]
 
         #Aviso rango de fechas erróneo
         if fecha_fin <= fecha_inicio:
@@ -120,8 +124,12 @@ if file_staff:
                     label=f"{turno}", min_value=0, max_value=20, value=valor_default, key=f"{dia}_{turno}"
                 )
 
+        
+        #----------------------------------------------------------
 
-        fechas = [fecha_inicio + timedelta(days=i) for i in range((fecha_fin - fecha_inicio).days + 1)]
+
+        
+        #31/07 esto aparte en otro if
         demanda = []
         for fecha in fechas:
             dia_cast = dias_semana[fecha.weekday()]
@@ -134,8 +142,11 @@ if file_staff:
                 })
         demand = pd.DataFrame(demanda)
         st.subheader("📆 Demanda generada")
-        st.dataframe(demand)
+        #st.dataframe(demand)
 
+
+
+    
     if demand is not None and st.button("🚀 Ejecutar asignación"):
         staff_hours = {row.ID: 0 for _, row in staff.iterrows()}
         staff_dates = {row.ID: [] for _, row in staff.iterrows()}
