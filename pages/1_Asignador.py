@@ -126,6 +126,10 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
         st.warning("⚠️ No se ha cargado ninguna demanda de turnos.")
         st.stop()
 
+    if not all(col in demand.columns for col in ["Fecha", "Unidad", "Turno", "Personal_Requerido"]):
+        st.error("❌ La demanda debe contener las columnas: Fecha, Unidad, Turno, Personal_Requerido")
+        st.stop()
+
     demand_sorted = demand.sort_values(by="Fecha")
 
     for _, dem in demand_sorted.iterrows():
