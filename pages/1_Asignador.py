@@ -206,7 +206,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
             uncovered.append({"Fecha": fecha, "Unidad": unidad, "Turno": turno, "Faltan": req - assigned_count})
 
     df_assign = pd.DataFrame(assignments)
-    #df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
+    df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
     st.success("✅ Asignación completada")
     st.dataframe(df_assign)
 
