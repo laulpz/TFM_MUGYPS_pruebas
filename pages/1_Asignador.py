@@ -223,10 +223,10 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     st.session_state["df_uncov"] = df_uncov
     st.session_state["resumen_horas"] = resumen_horas
 
-    if st.session_state["asignacion_completada"]:
-        df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
-        st.success("✅ Asignación completada")
-        st.dataframe(df_assign)
+if st.session_state["asignacion_completada"]:
+    df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
+    st.success("✅ Asignación completada")
+    st.dataframe(df_assign)
     #prueba-----------------------------------------------------------------------
 
     guardar_asignaciones(df_assign)
