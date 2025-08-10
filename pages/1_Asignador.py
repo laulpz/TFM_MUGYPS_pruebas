@@ -46,17 +46,36 @@ file_staff = st.session_state["file_staff"]
 #Configurar la demanda de turnos
 metodo = st.sidebar.selectbox("2️⃣📈 Método para ingresar demanda:", ["Generar manualmente","Desde Excel"])
 
-"""
-#10/08: Ahora este boton esta all final. Creo que mejor. pero dejo aqui por si acaso
-st.sidebar.markdown("---")
-if st.sidebar.button("🗑️ Resetear base de datos"):
-    reset_db()
-    st.sidebar.success("✅ Base de datos reiniciada correctamente.")
-    #st.experimental_rerun() #VERSION 04/08: comprobar si es necesario, ahora me da error
-    for key in list(st.session_state.keys()): #VERSION 31/07. Está al final del todo. El mensaje de reinicio correcto desaparece rápido...
-        del st.session_state[key]
-    st.rerun()
-"""
+if metodo == "Desde Excel":
+    file_demand = st.sidebar.file_uploader("Demanda de turnos (.xlsx)", type=["xlsx"])
+    if file_demand:
+        demand = pd.read_excel(file_demand)
+        demand.columns = demand.columns.str.strip()
+        st.subheader("📆 Demanda desde archivo")
+        st.dataframe(demand)
+elif metodo == "Generar manualmente":
+    st.subheader("⚙️ Generador de Demanda Manual")
+    unidad = st.selectbox("Unidad Hospitalaria", ["Medicina Interna", "UCI", "Urgencias", "Oncología", "Quirófano"])
+    col1, col2 = st.columns(2)
+    fecha_inicio = col1.date_input("Fecha de inicio", value=date(2025, 1, 1))
+    fecha_fin = col2.date_input("Fecha de fin", value=date(2025, 1, 31))
+    fechas = [fecha_inicio + timedelta(days=i) for i in range((fecha_fin - fecha_inicio).days + 1)]
+    
+    #Aviso rango de fechas erróneo
+    if fecha_fin <= fecha_inicio:
+        st.warning("⚠️ La fecha fin debe ser posterior a la fecha inicio.")
+        st.stop()
+        
+    demanda_por_dia = {}
+    for dia in dias_semana:
+         st.markdown(f"**{dia}**")
+         cols = st.columns(3)
+        demanda_por_dia[dia] = {}
+        valor_default = 8 if dia in dias_semana[:5] else 4
+        for i, turno in enumerate(turnos):
+            demanda_por_dia[dia][turno] = cols[i].number_input(
+                label=f"{turno}", min_value=0, max_value=20, value=valor_default, key=f"{dia}_{turno}"
+             )
 
 
 #Si se ha cargado el archivo de personal leer archivo
@@ -84,51 +103,10 @@ if file_staff:
     st.subheader("👩‍⚕️ Personal cargado")
     st.dataframe(staff)
 
-
-
-    #####################################3
     
     demand = None
 
-    if metodo == "Desde Excel":
-        file_demand = st.sidebar.file_uploader("Demanda de turnos (.xlsx)", type=["xlsx"])
-        if file_demand:
-            demand = pd.read_excel(file_demand)
-            demand.columns = demand.columns.str.strip()
-            st.subheader("📆 Demanda desde archivo")
-            st.dataframe(demand)
 
-    #toda esta parte esta fuera de cualquier loop o if en archivo de 31?07
-    #----------------------------------------------------------
-    elif metodo == "Generar manualmente":
-        st.subheader("⚙️ Generador de Demanda Manual")
-        unidad = st.selectbox("Unidad Hospitalaria", ["Medicina Interna", "UCI", "Urgencias", "Oncología", "Quirófano"])
-        col1, col2 = st.columns(2)
-        fecha_inicio = col1.date_input("Fecha de inicio", value=date(2025, 1, 1))
-        fecha_fin = col2.date_input("Fecha de fin", value=date(2025, 1, 31))
-        fechas = [fecha_inicio + timedelta(days=i) for i in range((fecha_fin - fecha_inicio).days + 1)]
-
-        #Aviso rango de fechas erróneo
-        if fecha_fin <= fecha_inicio:
-            st.warning("⚠️ La fecha fin debe ser posterior a la fecha inicio.")
-            st.stop()
-
-        demanda_por_dia = {}
-        for dia in dias_semana:
-            st.markdown(f"**{dia}**")
-            cols = st.columns(3)
-            demanda_por_dia[dia] = {}
-            valor_default = 8 if dia in dias_semana[:5] else 4
-            for i, turno in enumerate(turnos):
-                demanda_por_dia[dia][turno] = cols[i].number_input(
-                    label=f"{turno}", min_value=0, max_value=20, value=valor_default, key=f"{dia}_{turno}"
-                )
-
-        
-        #----------------------------------------------------------
-
-
-        
         #31/07 esto aparte en otro if
         demanda = []
         for fecha in fechas:
