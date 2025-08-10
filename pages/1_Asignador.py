@@ -106,25 +106,21 @@ if file_staff:
     
     demand = None
 
-
-        #31/07 esto aparte en otro if
-        demanda = []
-        for fecha in fechas:
-            dia_cast = dias_semana[fecha.weekday()]
-            for turno in turnos:
-                demanda.append({
-                    "Fecha": fecha.strftime("%Y-%m-%d"),
-                    "Unidad": unidad,
-                    "Turno": turno,
-                    "Personal_Requerido": demanda_por_dia[dia_cast][turno]
-                })
-        demand = pd.DataFrame(demanda)
-        st.subheader("📆 Demanda generada")
-        #st.dataframe(demand)
+    demanda = []
+    for fecha in fechas:
+        dia_cast = dias_semana[fecha.weekday()]
+        for turno in turnos:
+             demanda.append({
+                 "Fecha": fecha.strftime("%Y-%m-%d"),
+                 "Unidad": unidad,
+                 "Turno": turno,
+                  "Personal_Requerido": demanda_por_dia[dia_cast][turno]
+             })
+    demand = pd.DataFrame(demanda)
+    st.subheader("📆 Demanda generada")
+    #st.dataframe(demand)
 
 
-
-    
     if demand is not None and st.button("🚀 Ejecutar asignación"):
         staff_hours = {row.ID: 0 for _, row in staff.iterrows()}
         staff_dates = {row.ID: [] for _, row in staff.iterrows()}
