@@ -208,6 +208,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     #-------------------------------------------------------------------------
     df_uncov = pd.DataFrame(uncovered) if uncovered else None 
 
+    """
     resumen_horas = pd.DataFrame([{
         "ID": id_,
         "Turno_Contrato": staff.loc[staff.ID == id_, "Turno_Contrato"].values[0],
@@ -218,10 +219,13 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     if not df_prev.empty:
         resumen_horas = pd.concat([df_prev, resumen_horas]).groupby(["ID", "Turno_Contrato"], as_index=False).agg({"Horas_Acumuladas": "sum", "Jornadas": "sum"})
     
+    st.session_state["resumen_horas"] = resumen_horas
+    """
+    
     st.session_state["asignacion_completada"] = True
     st.session_state["df_assign"] = df_assign
     st.session_state["df_uncov"] = df_uncov
-    st.session_state["resumen_horas"] = resumen_horas
+
 
     guardar_asignaciones(df_assign)
 
@@ -272,7 +276,7 @@ if st.session_state["asignacion_completada"]:
 
 
 st.markdown("### ✅ Confirmación de asignación")
-    aprobacion = st.radio("¿Deseas aprobar esta asignación?", ["Pendiente", "Aprobar", "Rehacer"], index=0)
+aprobacion = st.radio("¿Deseas aprobar esta asignación?", ["Pendiente", "Aprobar", "Rehacer"], index=0)
 
 
 
