@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, date
 from io import BytesIO
 from db_manager import (
     init_db, guardar_asignaciones, guardar_resumen_mensual,
-    descargar_bd_desde_drive, subir_bd_a_drive
+    descargar_bd_desde_drive, subir_bd_a_drive, reset_db
 )
 
 #Títulos y descripción
@@ -48,13 +48,12 @@ metodo = st.sidebar.selectbox("2️⃣📈 Método para ingresar demanda:", ["Ge
 
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
-    from db_manager import reset_db
     reset_db()
     st.sidebar.success("✅ Base de datos reiniciada correctamente.")
-    st.experimental_rerun()
+    st.experimental_rerun() #comprobar si es necesario
 
 
-#Si se ha caragdo el archivo de personal
+#Si se ha cargado el archivo de personal
 if file_staff:
     staff = pd.read_excel(file_staff)
     staff.columns = staff.columns.str.strip()
@@ -98,20 +97,24 @@ if file_staff:
         unidad = st.selectbox("Unidad Hospitalaria", ["Medicina Interna", "UCI", "Urgencias", "Oncología", "Quirófano"])
         col1, col2 = st.columns(2)
         fecha_inicio = col1.date_input("Fecha de inicio", value=date(2025, 1, 1))
-        fecha_fin = col2.date_input("Fecha de fin", value=date(2025, 1, 7))
+        fecha_fin = col2.date_input("Fecha de fin", value=date(2025, 1, 31))
+
+        #Aviso rango de fechas erróneo
+        if fecha_fin <= fecha_inicio:
+            st.warning("⚠️ La fecha fin debe ser posterior a la fecha inicio.")
+            st.stop()
 
         demanda_por_dia = {}
         for dia in dias_semana:
             st.markdown(f"**{dia}**")
             cols = st.columns(3)
             demanda_por_dia[dia] = {}
+            valor_default = 8 if dia in dias_semana[:5] else 4
             for i, turno in enumerate(turnos):
                 demanda_por_dia[dia][turno] = cols[i].number_input(
-                    label=f"{turno}", min_value=0, max_value=20, value=3, key=f"{dia}_{turno}"
+                    label=f"{turno}", min_value=0, max_value=20, value=valor_default, key=f"{dia}_{turno}"
                 )
-        if fecha_fin <= fecha_inicio:
-            st.warning("⚠️ La fecha fin debe ser posterior a la fecha inicio.")
-            st.stop()
+
 
         fechas = [fecha_inicio + timedelta(days=i) for i in range((fecha_fin - fecha_inicio).days + 1)]
         demanda = []
