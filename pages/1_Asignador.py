@@ -94,9 +94,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
         if pd.isna(cell): return []
         try: return [d.strip() for d in ast.literal_eval(str(cell))]
         except: return [d.strip() for d in str(cell).split(',')]
-    
-    staff = pd.read_excel(file_staff)
-    staff.columns = staff.columns.str.strip()
+
     staff["Fechas_No_Disponibilidad"] = staff["Fechas_No_Disponibilidad"].apply(parse_dates)
     
     #Para jornadas parciales definir 80%
@@ -123,6 +121,10 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     staff_hours = {row.ID: 0 for _, row in staff.iterrows()}
     staff_dates = {row.ID: [] for _, row in staff.iterrows()}
     assignments, uncovered = [], []
+
+    if demand is None:
+        st.warning("⚠️ No se ha cargado ninguna demanda de turnos.")
+        st.stop()
 
     demand_sorted = demand.sort_values(by="Fecha")
 
@@ -235,8 +237,8 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
             df.to_excel(writer, index=False)
         return output.getvalue()
 
-     st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(df_assign), file_name="Planilla_Asignada.xlsx")
-     st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(resumen_mensual), file_name="Resumen_Mensual.xlsx")
+    st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(df_assign), file_name="Planilla_Asignada.xlsx")
+    st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(resumen_mensual), file_name="Resumen_Mensual.xlsx")
 
     if uncovered:
           df_uncov = pd.DataFrame(uncovered)
