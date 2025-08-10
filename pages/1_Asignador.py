@@ -265,10 +265,11 @@ if file_staff:
             st.dataframe(df_uncov)
             st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(df_uncov), file_name="Turnos_Sin_Cubrir.xlsx")
 
+st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
     reset_db()
     st.sidebar.success("✅ Base de datos reiniciada correctamente.")
     #st.experimental_rerun() #VERSION 04/08: comprobar si es necesario, ahora me da error
-    for key in list(st.session_state.keys()): #VERSION 31/07. Está al final del todo. El mensaje de reinicio correcto desaparece rápido...
-        del st.session_state[key]
-    st.rerun()
+    #for key in list(st.session_state.keys()): #VERSION 31/07. Está al final del todo. El mensaje de reinicio correcto desaparece rápido...
+        #del st.session_state[key]
+    #st.rerun()
