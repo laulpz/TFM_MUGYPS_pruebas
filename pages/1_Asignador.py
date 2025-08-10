@@ -50,7 +50,11 @@ st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
     reset_db()
     st.sidebar.success("✅ Base de datos reiniciada correctamente.")
-    st.experimental_rerun() #comprobar si es necesario
+    #st.experimental_rerun() #VERSION 04/08: comprobar si es necesario, ahora me da error
+    for key in list(st.session_state.keys()): #VERSION 31/07. Está al final del todo
+        del st.session_state[key]
+    st.rerun()
+
 
 
 #Si se ha cargado el archivo de personal
