@@ -8,22 +8,44 @@ from db_manager import (
     descargar_bd_desde_drive, subir_bd_a_drive
 )
 
+#Títulos y descripción
 st.set_page_config(page_title="Asignador", layout="wide")
 st.title("📋 Asignador de Turnos (Excel o Generador Manual)")
+st.markdown("""
+añadir descripción aqui
+""")
 
+
+#Carga BBDD, debería cargarse desde estado anterior
 FILE_ID = "1zqAyIB1BLfCc2uH1v29r-clARHoh2o_s"
 descargar_bd_desde_drive(FILE_ID)
 init_db()
 
+
+#31/07: Comprobar estado para conservar el de la sesión anterior. Hya que revisar variables
+if "asignacion_completada" not in st.session_state:
+    st.session_state["asignacion_completada"] = False
+    st.session_state["df_assign"] = None
+    st.session_state["df_uncov"] = None
+    st.session_state["resumen_horas"] = None
+if "file_staff" not in st.session_state:
+    st.session_state["file_staff"] = None
+
+
+#Demanda de turnos
 SHIFT_HOURS = {"Mañana": 7.5, "Tarde": 7.5, "Noche": 10}
 BASE_MAX_HOURS = {"Mañana": 1642.5, "Tarde": 1642.5, "Noche": 1470}
 BASE_MAX_JORNADAS = {"Mañana": 219, "Tarde": 219, "Noche": 147}
 dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 turnos = ["Mañana", "Tarde", "Noche"]
 
-st.sidebar.header("📂 Suba la plantilla de personal")
 
+st.sidebar.header("1️⃣📂 Suba la plantilla de personal")
 file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xlsx"])
+if file_staff:
+    st.session_state["file_staff"] = file_staff
+file_staff = st.session_state["file_staff"]
+
 
 
 metodo = st.sidebar.selectbox("📈 Método para ingresar demanda:", ["Desde Excel", "Generar manualmente"])
