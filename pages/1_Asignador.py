@@ -198,7 +198,6 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
                     "ID_Enfermera": cand.ID,
                     "Jornada": cand.Jornada,
                     "Horas_Acumuladas": SHIFT_HOURS[turno],
-                    "Confirmado": 0
                 })
                 staff_hours[cand.ID] += SHIFT_HOURS[turno]
                 staff_dates[cand.ID].append(fecha)
@@ -207,7 +206,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
             uncovered.append({"Fecha": fecha, "Unidad": unidad, "Turno": turno, "Faltan": req - assigned_count})
 
     df_assign = pd.DataFrame(assignments)
-    #Duda 10/08: df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
+    #df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
     st.success("✅ Asignación completada")
     st.dataframe(df_assign)
 
