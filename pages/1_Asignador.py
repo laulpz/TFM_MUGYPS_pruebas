@@ -15,12 +15,10 @@ st.markdown("""
 añadir descripción aqui
 """)
 
-
 #Carga BBDD, debería cargarse desde estado anterior
 FILE_ID = "1zqAyIB1BLfCc2uH1v29r-clARHoh2o_s"
 descargar_bd_desde_drive(FILE_ID)
 init_db()
-
 
 #31/07: Comprobar estado para conservar el de la sesión anterior. Hya que revisar variables
 if "asignacion_completada" not in st.session_state:
@@ -31,7 +29,6 @@ if "asignacion_completada" not in st.session_state:
 if "file_staff" not in st.session_state:
     st.session_state["file_staff"] = None
 
-
 #Demanda de turnos
 SHIFT_HOURS = {"Mañana": 7.5, "Tarde": 7.5, "Noche": 10}
 BASE_MAX_HOURS = {"Mañana": 1642.5, "Tarde": 1642.5, "Noche": 1470}
@@ -39,17 +36,15 @@ BASE_MAX_JORNADAS = {"Mañana": 219, "Tarde": 219, "Noche": 147}
 dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 turnos = ["Mañana", "Tarde", "Noche"]
 
-
+#Subida plantilla de personal. 10/08 añadido if para st.session_state
 st.sidebar.header("1️⃣📂 Suba la plantilla de personal")
 file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xlsx"])
 if file_staff:
     st.session_state["file_staff"] = file_staff
 file_staff = st.session_state["file_staff"]
 
-
-
-metodo = st.sidebar.selectbox("📈 Método para ingresar demanda:", ["Desde Excel", "Generar manualmente"])
-
+#Configurar la demanda de turnos
+metodo = st.sidebar.selectbox("2️⃣📈 Método para ingresar demanda:", ["Generar manualmente","Desde Excel"])
 
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
@@ -59,6 +54,7 @@ if st.sidebar.button("🗑️ Resetear base de datos"):
     st.experimental_rerun()
 
 
+#Si se ha caragdo el archivo de personal
 if file_staff:
     staff = pd.read_excel(file_staff)
     staff.columns = staff.columns.str.strip()
@@ -69,7 +65,8 @@ if file_staff:
         except: return [d.strip() for d in str(cell).split(',')]
 
     staff["Fechas_No_Disponibilidad"] = staff["Fechas_No_Disponibilidad"].apply(parse_dates)
-
+    
+    #Para jornadas parciales definir 80%
     staff_max_hours = {
         row.ID: BASE_MAX_HOURS[row.Turno_Contrato] * (0.8 if row.Jornada == "Parcial" else 1)
         for _, row in staff.iterrows()
@@ -82,6 +79,10 @@ if file_staff:
     st.subheader("👩‍⚕️ Personal cargado")
     st.dataframe(staff)
 
+
+
+
+    
     demand = None
 
     if metodo == "Desde Excel":
