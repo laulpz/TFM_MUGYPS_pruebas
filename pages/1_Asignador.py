@@ -11,9 +11,7 @@ from db_manager import (
 #Títulos y descripción
 st.set_page_config(page_title="Asignador", layout="wide")
 st.title("📋 Asignador de Turnos (Excel o Generador Manual)")
-st.markdown("""
-añadir descripción aqui
-""")
+st.markdown("""añadir descripción aqui """)
 
 #Carga BBDD, debería cargarse desde estado anterior
 FILE_ID = "1zqAyIB1BLfCc2uH1v29r-clARHoh2o_s"
@@ -38,7 +36,7 @@ turnos = ["Mañana", "Tarde", "Noche"]
 
 #Subida plantilla de personal. 10/08 añadido if para st.session_state
 st.sidebar.header("1️⃣📂 Suba la plantilla de personal")
-file_staff = st.sidebar.file_uploader("Plantilla de personal (.xlsx)", type=["xlsx"])
+file_staff = st.sidebar.file_uploader("El archivo debe contener las siguientes columnas: Plantilla de personal (.xlsx)", type=["xlsx"])
 if file_staff:
     st.session_state["file_staff"] = file_staff
     def parse_dates(cell):
@@ -98,157 +96,153 @@ elif metodo == "Generar manualmente":
              )
 
 
+if file_staff None and st.button("🚀 Ejecutar asignación"):
+    staff = pd.read_excel(file_staff)
+    staff.columns = staff.columns.str.strip()
 
-    if demand is not None and st.button("🚀 Ejecutar asignación"):
-        staff = pd.read_excel(file_staff)
-        staff.columns = staff.columns.str.strip()
+    #chequear, ligeramente distinto
+    demand = None
+    demanda = []
+    for fecha in fechas:
+        dia_cast = dias_semana[fecha.weekday()]
+        for turno in turnos:
+             demanda.append({
+                 "Fecha": fecha.strftime("%Y-%m-%d"),
+                  "Unidad": unidad,
+                  "Turno": turno,
+                  "Personal_Requerido": demanda_por_dia[dia_cast][turno]
+         })
+    demand = pd.DataFrame(demanda)
+    #st.subheader("📆 Demanda generada")
+    #st.dataframe(demand)
+    #chequear, ligeramente distinto---------------------
 
-        #chequear---------------------
-        demand = None
+    staff_hours = {row.ID: 0 for _, row in staff.iterrows()}
+    staff_dates = {row.ID: [] for _, row in staff.iterrows()}
+    assignments, uncovered = [], []
 
-        demanda = []
-        for fecha in fechas:
-            dia_cast = dias_semana[fecha.weekday()]
-            for turno in turnos:
-                demanda.append({
-                    "Fecha": fecha.strftime("%Y-%m-%d"),
-                     "Unidad": unidad,
-                     "Turno": turno,
-                     "Personal_Requerido": demanda_por_dia[dia_cast][turno]
-             })
-         demand = pd.DataFrame(demanda)
-        st.subheader("📆 Demanda generada")
-        #st.dataframe(demand)
-        #chequear---------------------
+    demand_sorted = demand.sort_values(by="Fecha")
 
+    for _, dem in demand_sorted.iterrows():
+        fecha = dem["Fecha"]
+        unidad = dem["Unidad"]
+        turno = dem["Turno"]
+        req = dem["Personal_Requerido"]
+        assigned_count = 0
 
-        staff_hours = {row.ID: 0 for _, row in staff.iterrows()}
-        staff_dates = {row.ID: [] for _, row in staff.iterrows()}
-        assignments, uncovered = [], []
+        cands = staff[
+            (staff["Unidad_Asignada"] == unidad) &
+            (staff["Turno_Contrato"] == turno) &
+            (~staff["Fechas_No_Disponibilidad"].apply(lambda lst: fecha in lst))
+        ].copy()
 
-        demand_sorted = demand.sort_values(by="Fecha")
+        if not cands.empty:
+            cands["Horas_Asignadas"] = cands["ID"].map(staff_hours)
+            cands["Jornadas_Asignadas"] = cands["ID"].map(lambda x: len(staff_dates[x]))
 
-        for _, dem in demand_sorted.iterrows():
-            fecha = dem["Fecha"]
-            unidad = dem["Unidad"]
-            turno = dem["Turno"]
-            req = dem["Personal_Requerido"]
-            assigned_count = 0
+            def jornada_ok(row):
+                 return len(staff_dates[row.ID]) < staff_max_jornadas[row.ID]
 
-            cands = staff[
-                (staff["Unidad_Asignada"] == unidad) &
-                (staff["Turno_Contrato"] == turno) &
-                (~staff["Fechas_No_Disponibilidad"].apply(lambda lst: fecha in lst))
-            ].copy()
+             def consecutive_ok(nurse_id):
+                 fechas = staff_dates[nurse_id]
+                if not fechas:
+                     return True
+                last_date = max(fechas)
+                if (datetime.strptime(fecha, "%Y-%m-%d") - datetime.strptime(last_date, "%Y-%m-%d")).days == 1:
+                     consec = 1
+                     check_date = datetime.strptime(last_date, "%Y-%m-%d")
+                    while True:
+                         check_date -= timedelta(days=1)
+                         if check_date.strftime("%Y-%m-%d") in fechas:
+                            consec += 1
+                               if consec >= 8:
+                                return False
+                         else:
+                               break
+                return True
 
-            if not cands.empty:
-                cands["Horas_Asignadas"] = cands["ID"].map(staff_hours)
-                cands["Jornadas_Asignadas"] = cands["ID"].map(lambda x: len(staff_dates[x]))
+             def descanso_12h_ok(nurse_id):
+                 fechas_previas = staff_dates[nurse_id]
+                 if not fechas_previas:
+                      return True
+                fecha_actual = datetime.strptime(fecha, "%Y-%m-%d")
+                 for fecha_ant in fechas_previas:
+                      fecha_prev = datetime.strptime(fecha_ant, "%Y-%m-%d")
+                      if abs((fecha_actual - fecha_prev).total_seconds()) < 12 * 3600:
+                          return False
+                 return True
 
-                def jornada_ok(row):
-                    return len(staff_dates[row.ID]) < staff_max_jornadas[row.ID]
+              def hours_ok(row):
+                 return staff_hours[row.ID] + SHIFT_HOURS[turno] <= staff_max_hours[row.ID]
 
-                def consecutive_ok(nurse_id):
-                    fechas = staff_dates[nurse_id]
-                    if not fechas:
-                        return True
-                    last_date = max(fechas)
-                    if (datetime.strptime(fecha, "%Y-%m-%d") - datetime.strptime(last_date, "%Y-%m-%d")).days == 1:
-                        consec = 1
-                        check_date = datetime.strptime(last_date, "%Y-%m-%d")
-                        while True:
-                            check_date -= timedelta(days=1)
-                            if check_date.strftime("%Y-%m-%d") in fechas:
-                                consec += 1
-                                if consec >= 8:
-                                    return False
-                            else:
-                                break
-                    return True
+             cands = cands[cands.apply(jornada_ok, axis=1)]
+             cands = cands[cands["ID"].apply(consecutive_ok)]
+             cands = cands[cands["ID"].apply(descanso_12h_ok)]
+             cands = cands[cands.apply(hours_ok, axis=1)]
+             cands = cands.sort_values(by="Horas_Asignadas")
 
-                def descanso_12h_ok(nurse_id):
-                    fechas_previas = staff_dates[nurse_id]
-                    if not fechas_previas:
-                        return True
-                    fecha_actual = datetime.strptime(fecha, "%Y-%m-%d")
-                    for fecha_ant in fechas_previas:
-                        fecha_prev = datetime.strptime(fecha_ant, "%Y-%m-%d")
-                        if abs((fecha_actual - fecha_prev).total_seconds()) < 12 * 3600:
-                            return False
-                    return True
+        if not cands.empty:
+            for _, cand in cands.iterrows():
+                 if assigned_count >= req: break
+                 assignments.append({
+                     "Fecha": fecha,
+                      "Unidad": unidad,
+                      "Turno": turno,
+                      "ID_Enfermera": cand.ID,
+                      "Jornada": cand.Jornada,
+                      "Horas_Acumuladas": SHIFT_HOURS[turno],
+                      "Confirmado": 0
+                })
+                staff_hours[cand.ID] += SHIFT_HOURS[turno]
+                 staff_dates[cand.ID].append(fecha)
+                assigned_count += 1
 
-                def hours_ok(row):
-                    return staff_hours[row.ID] + SHIFT_HOURS[turno] <= staff_max_hours[row.ID]
+        if assigned_count < req:
+            uncovered.append({"Fecha": fecha, "Unidad": unidad, "Turno": turno, "Faltan": req - assigned_count})
 
-                cands = cands[cands.apply(jornada_ok, axis=1)]
-                cands = cands[cands["ID"].apply(consecutive_ok)]
-                cands = cands[cands["ID"].apply(descanso_12h_ok)]
-                cands = cands[cands.apply(hours_ok, axis=1)]
-                cands = cands.sort_values(by="Horas_Asignadas")
+    df_assign = pd.DataFrame(assignments)
+    df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
+    st.success("✅ Asignación completada")
+    st.dataframe(df_assign)
 
-            if not cands.empty:
-                for _, cand in cands.iterrows():
-                    if assigned_count >= req:
-                        break
-                    assignments.append({
-                        "Fecha": fecha,
-                        "Unidad": unidad,
-                        "Turno": turno,
-                        "ID_Enfermera": cand.ID,
-                        "Jornada": cand.Jornada,
-                        "Horas_Acumuladas": SHIFT_HOURS[turno],
-                        "Confirmado": 0
-                    })
-                    staff_hours[cand.ID] += SHIFT_HOURS[turno]
-                    staff_dates[cand.ID].append(fecha)
-                    assigned_count += 1
+    guardar_asignaciones(df_assign)
 
-            if assigned_count < req:
-                uncovered.append({"Fecha": fecha, "Unidad": unidad, "Turno": turno, "Faltan": req - assigned_count})
+    df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"])
+    df_assign["Año"] = df_assign["Fecha"].dt.year
+    df_assign["Mes"] = df_assign["Fecha"].dt.month
 
-        df_assign = pd.DataFrame(assignments)
-        df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
-        st.success("✅ Asignación completada")
-        st.dataframe(df_assign)
+    resumen_mensual = df_assign.groupby(
+         ["ID_Enfermera", "Unidad", "Turno", "Jornada", "Año", "Mes"],
+         as_index=False
+     ).agg({
+        "Horas_Acumuladas": "sum",
+         "Fecha": "count"
+    }).rename(columns={
+         "ID_Enfermera": "ID",
+         "Fecha": "Jornadas_Asignadas",
+         "Horas_Acumuladas": "Horas_Asignadas"
+     })
 
-        guardar_asignaciones(df_assign)
+    guardar_resumen_mensual(resumen_mensual)
+    subir_bd_a_drive(FILE_ID)
 
-        df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"])
-        df_assign["Año"] = df_assign["Fecha"].dt.year
-        df_assign["Mes"] = df_assign["Fecha"].dt.month
+    st.subheader("📊 Resumen mensual")
+    st.dataframe(resumen_mensual)
 
-        resumen_mensual = df_assign.groupby(
-            ["ID_Enfermera", "Unidad", "Turno", "Jornada", "Año", "Mes"],
-            as_index=False
-        ).agg({
-            "Horas_Acumuladas": "sum",
-            "Fecha": "count"
-        }).rename(columns={
-            "ID_Enfermera": "ID",
-            "Fecha": "Jornadas_Asignadas",
-            "Horas_Acumuladas": "Horas_Asignadas"
-        })
+    def to_excel_bytes(df):
+         output = BytesIO()
+         with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False)
+        return output.getvalue()
 
-        guardar_resumen_mensual(resumen_mensual)
-        subir_bd_a_drive(FILE_ID)
+     st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(df_assign), file_name="Planilla_Asignada.xlsx")
+     st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(resumen_mensual), file_name="Resumen_Mensual.xlsx")
 
-        st.subheader("📊 Resumen mensual")
-        st.dataframe(resumen_mensual)
-
-        def to_excel_bytes(df):
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                df.to_excel(writer, index=False)
-            return output.getvalue()
-
-        st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(df_assign), file_name="Planilla_Asignada.xlsx")
-        st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(resumen_mensual), file_name="Resumen_Mensual.xlsx")
-
-        if uncovered:
-            df_uncov = pd.DataFrame(uncovered)
-            st.subheader("⚠️ Turnos sin cubrir")
-            st.dataframe(df_uncov)
-            st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(df_uncov), file_name="Turnos_Sin_Cubrir.xlsx")
+    if uncovered:
+          df_uncov = pd.DataFrame(uncovered)
+          st.subheader("⚠️ Turnos sin cubrir")
+          st.dataframe(df_uncov)
+          st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(df_uncov), file_name="Turnos_Sin_Cubrir.xlsx")
 
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
