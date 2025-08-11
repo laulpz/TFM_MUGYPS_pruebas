@@ -5,8 +5,8 @@ from datetime import datetime, timedelta, date
 from io import BytesIO
 from db_manager import (
     init_db, guardar_asignaciones, guardar_resumen_mensual,
-    descargar_bd_desde_drive, subir_bd_a_drive, reset_db, obtener_horas_acumuladas,
-    cargar_horas, obtener_horas_historicas, actualizar_horas_acumuladas
+    descargar_bd_desde_drive, subir_bd_a_drive, reset_db, 
+    cargar_horas, obtener_horas_historicas
 )
 
 def to_excel_bytes(df):
@@ -100,10 +100,23 @@ elif metodo == "Generar manualmente":
              })
     demand = pd.DataFrame(demanda)
 
+#Aquí está obviando las horas anteriores. En código 31/07 algo así: 
+def cargar_horas_actuales(staff):
+     df_historicas = obtener_horas_historicas()
+    if not df_historicas.empty:
+        return df_historicas.groupby('ID_Enfermera')['Horas'].sum().to_dict()
+     return {row.ID: 0 for _, row in staff.iterrows()}
+    
+
+
 #Ejecutar asignación
 if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     staff = pd.read_excel(file_staff)
     staff.columns = staff.columns.str.strip()
+
+    staff_hours = cargar_horas_actuales() 
+    # Completa con ceros si no existen registros
+    staff_hours.update({row.ID: 0 for row in staff.itertuples() if row.ID not in staff_hours})
 
     def parse_dates(cell):
         if pd.isna(cell): return []
@@ -125,15 +138,9 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     st.subheader("👩‍⚕️ Personal cargado")
     st.dataframe(staff)
 
-    #Aquí está obviando las horas anteriores. En código 31/07 algo así: 
-    def cargar_horas_actuales(staff):
-        df_historicas = obtener_horas_historicas()
-        if not df_historicas.empty:
-            return df_historicas.groupby('ID_Enfermera')['Horas'].sum().to_dict()
-        return {row.ID: 0 for _, row in staff.iterrows()}
-    
+
     # Carga de horas con la nueva función
-    staff_hours = cargar_horas_actuales(staff) 
+    
     df_horas_historicas = obtener_horas_acumuladas()
     if not df_horas_historicas.empty else {row.ID: 0 for _, row in staff.iterrows()}
     #staff_jornadas = dict.fromkeys(staff["ID"], 0)
