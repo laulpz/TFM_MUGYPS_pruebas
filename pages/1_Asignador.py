@@ -229,22 +229,6 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
       Jornadas_Asignadas=("Fecha", "count"))
  .reset_index()
  .rename(columns={"ID_Enfermera": "ID"}))
-    
-    #resumen_mensual = df_assign.groupby(
-         #["ID_Enfermera", "Unidad", "Turno", "Jornada", "Año", "Mes"],
-         #as_index=False
-    #).agg({
-        #"Horas_Acumuladas": "sum",
-        #"Fecha": "count"
-    #}).rename(columns={
-        #"ID_Enfermera": "ID",
-        #"Fecha": "Jornadas_Asignadas",
-        #"Horas_Acumuladas": "Horas_Asignadas"
-    #})
-    #st.session_state["resumen_mensual"] = resumen_mensual
-
-#else:
-    #st.subheader("⚠️ SUBA PLANTILLA DE PERSONAL y demanda")
 
 if st.session_state["asignacion_completada"]:
     df_assign = st.session_state["df_assign"].drop(columns=["Confirmado"], errors="ignore")
@@ -281,6 +265,8 @@ if st.session_state["asignacion_completada"]:
             guardar_asignaciones(df_to_save)
             guardar_resumen_mensual(st.session_state["resumen_mensual"])
             st.success("✅ Datos guardados correctamente")
+            subir_bd_a_drive(FILE_ID)
+            st.success("📥 Datos guardados en la base de datos correctamente.")
         except Exception as e:
             st.error(f"❌ Error al guardar: {str(e)}")
 
@@ -288,12 +274,6 @@ if st.session_state["asignacion_completada"]:
             st.error("No se encontró el resumen mensual")
             st.stop()
 
-        
-        #OJO PORQUE AHORA ANTES LO ESTOY HACIENDO SIN VALIDACION, HAY QUE DEPURAR UN POCO EL CODIGO EN QUE SE GUARDA EN BBDD Y QUE SE IMPRIME COMO RESUMEN MENSUl
-        #guardar_asignaciones(st.session_state["df_assign"])
-        #guardar_resumen_mensual(resumen_mensual)
-        #subir_bd_a_drive(FILE_ID)
-        #st.success("📥 Datos guardados en la base de datos correctamente.")
         #st.subheader("🧾 Resumen Asignación Mensual por profesional")
 
         def to_excel_bytes(df):
@@ -302,8 +282,6 @@ if st.session_state["asignacion_completada"]:
                 df.to_excel(writer, index=False)
             return output.getvalue()
 
-        #st.subheader("📊 Resumen mensual")
-        #st.dataframe(resumen_mensual)
         st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(st.session_state["df_assign"]), file_name="Planilla_Asignada.xlsx")
         st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(st.session_state["resumen_mensual"]), file_name="Resumen_Mensual_{datetime.now().strftime('%Y%m%d')}.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
