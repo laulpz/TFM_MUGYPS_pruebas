@@ -127,13 +127,14 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
 
     #Aquí está obviando las horas anteriores. En código 31/07 algo así: 
     def cargar_horas_actuales(staff):
-    df_historicas = obtener_horas_historicas()
-    if not df_historicas.empty:
-        return df_historicas.groupby('ID_Enfermera')['Horas'].sum().to_dict()
-    return {row.ID: 0 for _, row in staff.iterrows()}
+        df_historicas = obtener_horas_historicas()
+        if not df_historicas.empty:
+            return df_historicas.groupby('ID_Enfermera')['Horas'].sum().to_dict()
+        return {row.ID: 0 for _, row in staff.iterrows()}
     
+    # Carga de horas con la nueva función
+    staff_hours = cargar_horas_actuales(staff) 
     df_horas_historicas = obtener_horas_acumuladas()
-    staff_hours = dict(zip(df_horas_historicas["ID"], df_horas_historicas["Horas_Acumuladas"])) 
     if not df_horas_historicas.empty else {row.ID: 0 for _, row in staff.iterrows()}
     #staff_jornadas = dict.fromkeys(staff["ID"], 0)
     staff_dates = {row.ID: [] for _, row in staff.iterrows()}
