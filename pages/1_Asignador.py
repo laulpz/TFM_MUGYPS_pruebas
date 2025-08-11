@@ -284,6 +284,10 @@ if st.session_state["asignacion_completada"]:
         except Exception as e:
             st.error(f"❌ Error al guardar: {str(e)}")
 
+        if "resumen_mensual" not in st.session_state:
+            st.error("No se encontró el resumen mensual")
+            st.stop()
+
         
         #OJO PORQUE AHORA ANTES LO ESTOY HACIENDO SIN VALIDACION, HAY QUE DEPURAR UN POCO EL CODIGO EN QUE SE GUARDA EN BBDD Y QUE SE IMPRIME COMO RESUMEN MENSUl
         #guardar_asignaciones(st.session_state["df_assign"])
@@ -301,7 +305,7 @@ if st.session_state["asignacion_completada"]:
         #st.subheader("📊 Resumen mensual")
         #st.dataframe(resumen_mensual)
         st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(st.session_state["df_assign"]), file_name="Planilla_Asignada.xlsx")
-        st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(st.session_state["resumen_mensual"]), file_name="Resumen_Mensual.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(st.session_state["resumen_mensual"]), file_name="Resumen_Mensual_{datetime.now().strftime('%Y%m%d')}.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     elif aprobacion == "Rehacer":
         st.session_state["asignacion_completada"] = False
