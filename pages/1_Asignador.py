@@ -198,7 +198,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
                     "Turno": turno,
                     "ID_Enfermera": cand.ID,
                     "Jornada": cand.Jornada,
-                    "Horas_Acumuladas": staff_hours[cand.ID] + SHIFT_HOURS[turno], # staff_hours[cand.ID] + SHIFT_HOURS[turno]
+                    "Horas": SHIFT_HOURS[turno], # staff_hours[cand.ID] + SHIFT_HOURS[turno]
                 })
                 staff_hours[cand.ID] += SHIFT_HOURS[turno]
                 staff_dates[cand.ID].append(fecha)
@@ -225,7 +225,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
         Año=df_assign["Fecha"].dt.year,
         Mes=df_assign["Fecha"].dt.month
 ).groupby(["ID_Enfermera", "Unidad", "Turno", "Jornada", "Año", "Mes"])
- .agg(Horas_Asignadas=("Horas_Acumuladas", "sum"),
+ .agg(Horas_Asignadas=("Horas", "sum"),
       Jornadas_Asignadas=("Fecha", "count"))
  .reset_index()
  .rename(columns={"ID_Enfermera": "ID"}))
@@ -267,13 +267,13 @@ if st.session_state["asignacion_completada"]:
         st.write("Debug - df_assign dtypes:", st.session_state["df_assign"].dtypes)
     
         # Verificar columnas requeridas
-        required_cols = {"Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas_Acumuladas"}
+        required_cols = {"Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"}
         if not required_cols.issubset(st.session_state["df_assign"].columns):
             st.error(f"❌ Faltan columnas: {required_cols - set(st.session_state['df_assign'].columns)}")
             st.stop()
     
         # Convertir fechas a string ISO
-        df_to_save = st.session_state["df_assign"].copy()[["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas_Acumuladas"]]
+        df_to_save = st.session_state["df_assign"].copy()[["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]]
         df_to_save["Fecha"] = pd.to_datetime(df_to_save["Fecha"]).dt.strftime("%Y-%m-%d")
     
         # Guardar
