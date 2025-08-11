@@ -301,7 +301,7 @@ if st.session_state["asignacion_completada"]:
         #st.subheader("📊 Resumen mensual")
         #st.dataframe(resumen_mensual)
         st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(st.session_state["df_assign"]), file_name="Planilla_Asignada.xlsx")
-        st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(resumen_mensual), file_name="Resumen_Mensual.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(st.session_state["resumen_mensual"]), file_name="Resumen_Mensual.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     elif aprobacion == "Rehacer":
         st.session_state["asignacion_completada"] = False
