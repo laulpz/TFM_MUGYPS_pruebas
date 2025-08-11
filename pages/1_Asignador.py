@@ -115,10 +115,9 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     st.dataframe(staff)
 
     #Aquí está obviando las horas anteriores. En código 31/07 algo así: 
-    #df_prev = cargar_horas()
-    #staff_hours = dict(zip(df_prev["ID"], df_prev["Horas_Acumuladas"])) if not df_prev.empty else {row.ID: 0 for _, row in staff.iterrows()}
+    df_prev = cargar_horas()
+    staff_hours = dict(zip(df_prev["ID"], df_prev["Horas"])) if not df_prev.empty else {row.ID: 0 for _, row in staff.iterrows()}
     #staff_jornadas = dict.fromkeys(staff["ID"], 0)
-    staff_hours = {row.ID: 0 for _, row in staff.iterrows()}
     staff_dates = {row.ID: [] for _, row in staff.iterrows()}
     assignments, uncovered = [], []
 
@@ -200,7 +199,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
                     "Jornada": cand.Jornada,
                     "Horas": SHIFT_HOURS[turno], # staff_hours[cand.ID] + SHIFT_HOURS[turno]
                 })
-                staff_hours[cand.ID] += SHIFT_HOURS[turno]
+                staff_hours[cand.ID] += staff_hours.get(cand.ID, 0) + SHIFT_HOURS[turno]  # Acumula horas
                 staff_dates[cand.ID].append(fecha)
                 assigned_count += 1
         if assigned_count < req:
