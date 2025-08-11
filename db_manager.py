@@ -163,3 +163,34 @@ def actualizar_horas_acumuladas(staff_hours):
         raise e
     finally:
         conn.close()
+
+def obtener_horas_historicas(id_enfermera=None):
+    """Obtiene todas las asignaciones históricas"""
+    conn = sqlite3.connect(DB_PATH)
+    query = "SELECT * FROM asignaciones"
+    if id_enfermera:
+        query += f" WHERE ID_Enfermera = '{id_enfermera}'"
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+def actualizar_horas_acumuladas():
+    """Actualiza la tabla de resumen con todos los datos históricos"""
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        # Calcula el acumulado completo
+        df = pd.read_sql_query("""
+            SELECT 
+                ID_Enfermera AS ID,
+                strftime('%Y', Fecha) AS Año,
+                SUM(Horas) AS Horas_Acumuladas,
+                COUNT(*) AS Jornadas_Acumuladas
+            FROM asignaciones
+            GROUP BY ID_Enfermera, strftime('%Y', Fecha)
+        """, conn)
+        
+        # Actualiza la tabla de resumen
+        df.to_sql("resumen_mensual", conn, if_exists="replace", index=False)
+        conn.commit()
+    finally:
+        conn.close()
