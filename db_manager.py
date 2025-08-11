@@ -70,8 +70,18 @@ def guardar_horas(df):
 
 def guardar_asignaciones(df):
     conn = sqlite3.connect(DB_PATH)
-    df.to_sql("asignaciones", conn, if_exists="append", index=False)
-    conn.close()
+    try:
+        # Validación adicional
+        if not all(col in df.columns for col in ["Fecha", "ID_Enfermera", "Turno"]):
+            raise ValueError("El DataFrame no tiene las columnas requeridas")
+        
+        df.to_sql("asignaciones", conn, if_exists="append", index=False)
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e  # Re-lanza el error para verlo en Streamlit
+    finally:
+        conn.close()
 
 def cargar_asignaciones():
     conn = sqlite3.connect(DB_PATH)
