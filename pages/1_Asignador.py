@@ -5,7 +5,8 @@ from datetime import datetime, timedelta, date
 from io import BytesIO
 from db_manager import (
     init_db, guardar_asignaciones, guardar_resumen_mensual,
-    descargar_bd_desde_drive, subir_bd_a_drive, reset_db, actualizar_horas_acumuladas, cargar_horas
+    descargar_bd_desde_drive, subir_bd_a_drive, reset_db, actualizar_horas_acumuladas, 
+    cargar_horas, obtener_horas_historicas, actualizar_horas_acumuladas
 )
 
 def to_excel_bytes(df):
@@ -125,6 +126,12 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     st.dataframe(staff)
 
     #Aquí está obviando las horas anteriores. En código 31/07 algo así: 
+    def cargar_horas_actuales(staff):
+    df_historicas = obtener_horas_historicas()
+    if not df_historicas.empty:
+        return df_historicas.groupby('ID_Enfermera')['Horas'].sum().to_dict()
+    return {row.ID: 0 for _, row in staff.iterrows()}
+    
     df_prev = cargar_horas()
     staff_hours = dict(zip(df_prev["ID"], df_prev["Horas"])) if not df_prev.empty else {row.ID: 0 for _, row in staff.iterrows()}
     #staff_jornadas = dict.fromkeys(staff["ID"], 0)
@@ -153,7 +160,8 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
         cands = staff[
             (staff["Unidad_Asignada"] == unidad) &
             (staff["Turno_Contrato"] == turno) &
-            (~staff["Fechas_No_Disponibilidad"].apply(lambda lst: fecha in lst))
+            (~staff["Fechas_No_Disponibilidad"].apply(lambda lst: fecha in lst)) &
+            (staff["ID"].map(lambda x: staff_hours.get(x, 0) + SHIFT_HOURS[turno] <= staff_max_hours[x]))
         ].copy()
 
         if not cands.empty:
