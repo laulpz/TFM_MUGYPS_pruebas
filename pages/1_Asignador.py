@@ -253,12 +253,35 @@ if st.session_state["asignacion_completada"]:
     aprobacion = st.radio("¿Deseas aprobar esta asignación?", ["Pendiente", "Aprobar", "Rehacer"], index=0)
     
     if aprobacion == "Aprobar":
+        # Debug: Mostrar estructura del DataFrame
+        st.write("Debug - df_assign columns:", st.session_state["df_assign"].columns)
+        st.write("Debug - df_assign dtypes:", st.session_state["df_assign"].dtypes)
+    
+        # Verificar columnas requeridas
+        required_cols = {"Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas_Acumuladas"}
+        if not required_cols.issubset(st.session_state["df_assign"].columns):
+            st.error(f"❌ Faltan columnas: {required_cols - set(st.session_state['df_assign'].columns)}")
+            st.stop()
+    
+        # Convertir fechas a string ISO
+        df_to_save = st.session_state["df_assign"].copy()
+        df_to_save["Fecha"] = pd.to_datetime(df_to_save["Fecha"]).dt.strftime("%Y-%m-%d")
+    
+        # Guardar
+        try:
+            guardar_asignaciones(df_to_save)
+            guardar_resumen_mensual(st.session_state["resumen_mensual"])
+            st.success("✅ Datos guardados correctamente")
+        except Exception as e:
+            st.error(f"❌ Error al guardar: {str(e)}")
+
+        
         #OJO PORQUE AHORA ANTES LO ESTOY HACIENDO SIN VALIDACION, HAY QUE DEPURAR UN POCO EL CODIGO EN QUE SE GUARDA EN BBDD Y QUE SE IMPRIME COMO RESUMEN MENSUl
-        guardar_asignaciones(st.session_state["df_assign"])
-        guardar_resumen_mensual(resumen_mensual)
-        subir_bd_a_drive(FILE_ID)
-        st.success("📥 Datos guardados en la base de datos correctamente.")
-        st.subheader("🧾 Resumen Asignación Mensual por profesional")
+        #guardar_asignaciones(st.session_state["df_assign"])
+        #guardar_resumen_mensual(resumen_mensual)
+        #subir_bd_a_drive(FILE_ID)
+        #st.success("📥 Datos guardados en la base de datos correctamente.")
+        #st.subheader("🧾 Resumen Asignación Mensual por profesional")
 
         def to_excel_bytes(df):
             output = BytesIO()
