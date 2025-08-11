@@ -108,8 +108,29 @@ def cargar_asignaciones():
 
 def guardar_resumen_mensual(df):
     conn = sqlite3.connect(DB_PATH)
-    df.to_sql("resumen_mensual", conn, if_exists="append", index=False)
-    conn.close()
+    try:
+        # 1. Cargar datos existentes
+        existing = pd.read_sql_query("SELECT * FROM resumen_mensual", conn)
+        
+        # 2. Combinar con nuevos datos (sumando horas y jornadas)
+        if not existing.empty:
+            merged = pd.concat([existing, df]).groupby(
+                ["ID", "Unidad", "Turno", "Jornada", "Año", "Mes"]
+            ).agg({
+                "Horas_Asignadas": "sum",
+                "Jornadas_Asignadas": "sum"
+            }).reset_index()
+        else:
+            merged = df
+            
+        # 3. Reemplazar completamente la tabla
+        merged.to_sql("resumen_mensual", conn, if_exists="replace", index=False)
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
 
 def reset_db():
     conn = sqlite3.connect(DB_PATH)
@@ -120,3 +141,25 @@ def reset_db():
     conn.commit()
     conn.close()
     init_db()
+
+def actualizar_horas_acumuladas(staff_hours):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        # Convertir el diccionario a DataFrame
+        df_horas = pd.DataFrame({
+            "ID": list(staff_hours.keys()),
+            "Horas": list(staff_hours.values())
+        })
+        
+        # Actualizar o insertar registros
+        for _, row in df_horas.iterrows():
+            conn.execute('''
+                INSERT OR REPLACE INTO horas (ID, Turno_Contrato, Horas)
+                VALUES (?, ?, ?)
+            ''', (row["ID"], row["Turno_Contrato"], row["Horas"]))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
