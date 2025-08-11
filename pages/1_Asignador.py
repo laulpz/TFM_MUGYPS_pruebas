@@ -198,7 +198,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
                     "Turno": turno,
                     "ID_Enfermera": cand.ID,
                     "Jornada": cand.Jornada,
-                    "Horas_Acumuladas": SHIFT_HOURS[turno], # staff_hours[cand.ID] + SHIFT_HOURS[turno]
+                    "Horas_Acumuladas": staff_hours[cand.ID] + SHIFT_HOURS[turno], # staff_hours[cand.ID] + SHIFT_HOURS[turno]
                 })
                 staff_hours[cand.ID] += SHIFT_HOURS[turno]
                 staff_dates[cand.ID].append(fecha)
