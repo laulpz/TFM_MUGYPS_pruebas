@@ -72,14 +72,29 @@ def guardar_asignaciones(df):
     required_columns = ["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]
     conn = sqlite3.connect(DB_PATH)
     try:
-        # Validación mejorada
+        # Renombrar columnas si es necesario (minúsculas a mayúsculas)
+        column_mapping = {
+            "fecha": "Fecha",
+            "unidad": "Unidad",
+            "turno": "Turno",
+            "id_enfermera": "ID_Enfermera",
+            "jornada": "Jornada",
+            "horas": "Horas"
+        }
+        df = df.rename(columns=column_mapping)
+        
+        # Validación final
         missing = set(required_columns) - set(df.columns)
         if missing:
-            raise ValueError(f"Faltan columnas requeridas: {missing}")
+            raise ValueError(f"Faltan columnas requeridas: {missing}. Columnas disponibles: {df.columns.tolist()}")
         
-        # Convertir y filtrar datos
+        # Convertir y filtrar
         df_to_save = df[required_columns].copy()
         df_to_save["Fecha"] = pd.to_datetime(df_to_save["Fecha"]).dt.strftime("%Y-%m-%d")
+        
+        # Debug: Verificar datos antes de guardar
+        print("Columnas a guardar:", df_to_save.columns.tolist())
+        print("Primeras filas:", df_to_save.head())
         
         df_to_save.to_sql("asignaciones", conn, if_exists="append", index=False)
         conn.commit()
