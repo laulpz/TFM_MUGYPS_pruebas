@@ -26,14 +26,6 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
-        CREATE TABLE IF NOT EXISTS horas (
-            ID TEXT,
-            Turno_Contrato TEXT,
-            Horas REAL,
-            PRIMARY KEY (ID, Turno_Contrato)
-        )
-    ''')
-    c.execute('''
         CREATE TABLE IF NOT EXISTS asignaciones (
             Fecha TEXT,
             Unidad TEXT,
@@ -63,11 +55,6 @@ def cargar_horas():
     df = pd.read_sql_query("SELECT * FROM horas", conn)
     conn.close()
     return df
-
-def guardar_horas(df):
-    conn = sqlite3.connect(DB_PATH)
-    df.to_sql("horas", conn, if_exists="replace", index=False)
-    conn.close()
 
 def guardar_asignaciones(df):
     required_columns = ["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]
@@ -136,27 +123,19 @@ def reset_db():
     conn.close()
     init_db()
 
-def actualizar_horas_acumuladas(staff_hours):
+def obtener_horas_acumuladas():
+    """Obtiene el total de horas trabajadas por cada enfermera"""
     conn = sqlite3.connect(DB_PATH)
-    try:
-        # Convertir el diccionario a DataFrame
-        df_horas = pd.DataFrame({
-            "ID": list(staff_hours.keys()),
-            "Horas": list(staff_hours.values())
-        })
-        
-        # Actualizar o insertar registros
-        for _, row in df_horas.iterrows():
-            conn.execute('''
-                INSERT OR REPLACE INTO horas (ID, Turno_Contrato, Horas)
-                VALUES (?, ?, ?)
-            ''', (row["ID"], row["Turno_Contrato"], row["Horas"]))
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        raise e
-    finally:
-        conn.close()
+    query = """
+        SELECT 
+            ID_Enfermera as ID, 
+            SUM(Horas) as Horas_Acumuladas
+        FROM asignaciones 
+        GROUP BY ID_Enfermera
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df  # Ejemplo: DataFrame con columnas [ID, Horas_Acumuladas]
 
 def obtener_horas_historicas(id_enfermera=None):
     """Obtiene todas las asignaciones históricas"""
@@ -167,27 +146,6 @@ def obtener_horas_historicas(id_enfermera=None):
     df = pd.read_sql_query(query, conn)
     conn.close()
     return df
-
-def actualizar_horas_acumuladas():
-    """Actualiza la tabla de resumen con todos los datos históricos"""
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        # Calcula el acumulado completo
-        df = pd.read_sql_query("""
-            SELECT 
-                ID_Enfermera AS ID,
-                strftime('%Y', Fecha) AS Año,
-                SUM(Horas) AS Horas_Acumuladas,
-                COUNT(*) AS Jornadas_Acumuladas
-            FROM asignaciones
-            GROUP BY ID_Enfermera, strftime('%Y', Fecha)
-        """, conn)
-        
-        # Actualiza la tabla de resumen
-        df.to_sql("resumen_mensual", conn, if_exists="replace", index=False)
-        conn.commit()
-    finally:
-        conn.close()
 
 # Nueva función para obtener acumulados
 def obtener_acumulados_anuales():
