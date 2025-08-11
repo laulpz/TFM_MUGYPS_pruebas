@@ -236,10 +236,17 @@ if st.session_state["asignacion_completada"]:
     st.dataframe(df_assign)
     
     if uncovered:
-          df_uncov = pd.DataFrame(uncovered)
-          st.subheader("⚠️ Turnos sin cubrir")
-          st.dataframe(pd.DataFrame(uncovered))
-          st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(st.session_state["df_uncov"]), file_name="Turnos_Sin_Cubrir.xlsx")
+        df_uncov = pd.DataFrame(uncovered)
+        st.subheader("⚠️ Turnos sin cubrir")
+        st.dataframe(df_uncov)
+        # Solo mostrar botón si hay datos
+        if not df_uncov.empty:
+            st.download_button(
+                "⬇️ Descargar turnos sin cubrir",
+                data=to_excel_bytes(df_uncov),
+                file_name="Turnos_Sin_Cubrir.xlsx",
+                disabled=df_uncov.empty  # Deshabilitar si está vacío
+            )
 
     st.markdown("### ✅ Confirmación de asignación")
     aprobacion = st.radio("¿Deseas aprobar esta asignación?", ["Pendiente", "Aprobar", "Rehacer"], index=0)
@@ -281,6 +288,8 @@ if st.session_state["asignacion_completada"]:
         #st.subheader("🧾 Resumen Asignación Mensual por profesional")
 
         def to_excel_bytes(df):
+            if df is None or df.empty:
+                return b''  # Bytes vacíos si no hay datos
             output = BytesIO()
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
                 df.to_excel(writer, index=False)
