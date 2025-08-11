@@ -41,7 +41,8 @@ turnos = ["Mañana", "Tarde", "Noche"]
 #Subida plantilla de personal. 10/08 añadido if para st.session_state
 st.sidebar.header("1️⃣📂 Suba la plantilla de personal")
 file_staff = st.sidebar.file_uploader("El archivo debe contener las siguientes columnas: Plantilla de personal (.xlsx)", type=["xlsx"])
-file_staff = st.session_state["file_staff"]
+if file_staff:
+    st.session_state["file_staff"] = file_staff
     
 #Configurar la demanda de turnos
 metodo = st.sidebar.selectbox("2️⃣📈 Método para ingresar demanda:", ["Generar manualmente","Desde Excel"])
@@ -209,9 +210,12 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
  
     df_uncov = pd.DataFrame(uncovered) if uncovered else None 
 
-    st.session_state["asignacion_completada"] = True
-    st.session_state["df_assign"] = df_assign
-    st.session_state["df_uncov"] = df_uncov
+    st.session_state.update({
+        "asignacion_completada": True,
+        "df_assign": df_assign,
+        "df_uncov": pd.DataFrame(uncovered) if uncovered else None,
+        "uncovered": uncovered  # Nueva línea
+    })
 
     df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"])
     df_assign["Año"] = df_assign["Fecha"].dt.year
@@ -235,13 +239,14 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
 
 if st.session_state["asignacion_completada"]:
     df_assign = st.session_state["df_assign"].drop(columns=["Confirmado"], errors="ignore")
+    uncovered = st.session_state.get("uncovered", [])
     st.success("✅ Asignación completada")
     st.dataframe(df_assign)
     
     if uncovered:
           df_uncov = pd.DataFrame(uncovered)
           st.subheader("⚠️ Turnos sin cubrir")
-          st.dataframe(df_uncov)
+          st.dataframe(pd.DataFrame(uncovered))
           st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(df_uncov), file_name="Turnos_Sin_Cubrir.xlsx")
 
     st.markdown("### ✅ Confirmación de asignación")
