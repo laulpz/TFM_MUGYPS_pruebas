@@ -1,14 +1,11 @@
-def verificar_limites_anuales(id_enfermera, horas_adicionales, turno_contrato):
-    """Verifica que no se excedan los límites anuales"""
-    from db_manager import obtener_horas_historicas
-    
-    df = obtener_horas_historicas(id_enfermera)
-    horas_actuales = df['Horas'].sum() if not df.empty else 0
-    
-    if turno_contrato == "Noche":
-        return horas_actuales + horas_adicionales <= 1470
-    else:
-        return horas_actuales + horas_adicionales <= 1642.5
+
+def verificar_limites(id_enfermera, horas_nuevas, turno_contrato):
+    """Usa datos reales de la base de datos"""
+    from db_manager import obtener_horas_acumuladas
+    df = obtener_horas_acumuladas()
+    horas_actuales = df.loc[df["ID"] == id_enfermera, "Horas_Acumuladas"].sum()
+    limite = 1470 if turno_contrato == "Noche" else 1642.5
+    return (horas_actuales + horas_nuevas) <= limite
 
 def verificar_disponibilidad(id_enfermera, fecha):
     """Verifica disponibilidad considerando asignaciones existentes"""
