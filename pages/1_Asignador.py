@@ -221,18 +221,27 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     df_assign["Año"] = df_assign["Fecha"].dt.year
     df_assign["Mes"] = df_assign["Fecha"].dt.month
 
-    resumen_mensual = df_assign.groupby(
-         ["ID_Enfermera", "Unidad", "Turno", "Jornada", "Año", "Mes"],
-         as_index=False
-    ).agg({
-        "Horas_Acumuladas": "sum",
-        "Fecha": "count"
-    }).rename(columns={
-        "ID_Enfermera": "ID",
-        "Fecha": "Jornadas_Asignadas",
-        "Horas_Acumuladas": "Horas_Asignadas"
-    })
-    st.session_state["resumen_mensual"] = resumen_mensual
+    resumen_mensual = (df_assign.assign(
+        Año=df_assign["Fecha"].dt.year,
+        Mes=df_assign["Fecha"].dt.month
+).groupby(["ID_Enfermera", "Unidad", "Turno", "Jornada", "Año", "Mes"])
+ .agg(Horas_Asignadas=("Horas_Acumuladas", "sum"),
+      Jornadas_Asignadas=("Fecha", "count"))
+ .reset_index()
+ .rename(columns={"ID_Enfermera": "ID"}))
+    
+    #resumen_mensual = df_assign.groupby(
+         #["ID_Enfermera", "Unidad", "Turno", "Jornada", "Año", "Mes"],
+         #as_index=False
+    #).agg({
+        #"Horas_Acumuladas": "sum",
+        #"Fecha": "count"
+    #}).rename(columns={
+        #"ID_Enfermera": "ID",
+        #"Fecha": "Jornadas_Asignadas",
+        #"Horas_Acumuladas": "Horas_Asignadas"
+    #})
+    #st.session_state["resumen_mensual"] = resumen_mensual
 
 #else:
     #st.subheader("⚠️ SUBA PLANTILLA DE PERSONAL y demanda")
@@ -264,7 +273,7 @@ if st.session_state["asignacion_completada"]:
             st.stop()
     
         # Convertir fechas a string ISO
-        df_to_save = st.session_state["df_assign"].copy()
+        df_to_save = st.session_state["df_assign"].copy()[["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas_Acumuladas"]]
         df_to_save["Fecha"] = pd.to_datetime(df_to_save["Fecha"]).dt.strftime("%Y-%m-%d")
     
         # Guardar
