@@ -239,7 +239,7 @@ if st.session_state["asignacion_completada"]:
           df_uncov = pd.DataFrame(uncovered)
           st.subheader("⚠️ Turnos sin cubrir")
           st.dataframe(pd.DataFrame(uncovered))
-          st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(st.session_state["uncovered"]), file_name="Turnos_Sin_Cubrir.xlsx")
+          st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(st.session_state["df_uncov"]), file_name="Turnos_Sin_Cubrir.xlsx")
 
     st.markdown("### ✅ Confirmación de asignación")
     aprobacion = st.radio("¿Deseas aprobar esta asignación?", ["Pendiente", "Aprobar", "Rehacer"], index=0)
