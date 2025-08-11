@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, date
 from io import BytesIO
 from db_manager import (
     init_db, guardar_asignaciones, guardar_resumen_mensual,
-    descargar_bd_desde_drive, subir_bd_a_drive, reset_db, actualizar_horas_acumuladas
+    descargar_bd_desde_drive, subir_bd_a_drive, reset_db, actualizar_horas_acumuladas, cargar_horas()
 )
 
 #Títulos y descripción
