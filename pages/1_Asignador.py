@@ -250,18 +250,22 @@ if st.session_state["asignacion_completada"]:
         st.write("Debug - df_assign columns:", st.session_state["df_assign"].columns)
         st.write("Debug - df_assign dtypes:", st.session_state["df_assign"].dtypes)
     
-        # Verificar columnas requeridas
-        required_cols = {"Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"}
-        if not required_cols.issubset(st.session_state["df_assign"].columns):
-            st.error(f"❌ Faltan columnas: {required_cols - set(st.session_state['df_assign'].columns)}")
+        # Verificar columnas requeridas (asegurando que los nombres coincidan exactamente)
+        required_cols = ["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]
+        if not all(col in st.session_state["df_assign"].columns for col in required_cols):
+            missing_cols = [col for col in required_cols if col not in st.session_state["df_assign"].columns]
+            st.error(f"❌ Faltan columnas requeridas: {missing_cols}")
             st.stop()
-    
-        # Convertir fechas a string ISO
-        df_to_save = st.session_state["df_assign"].copy()[["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]]
+
+        # Crear DataFrame para guardar (asegurando mayúsculas correctas)
+        df_to_save = st.session_state["df_assign"].copy()[required_cols]
         df_to_save["Fecha"] = pd.to_datetime(df_to_save["Fecha"]).dt.strftime("%Y-%m-%d")
+
     
         # Guardar
         try:
+            st.write("Columnas en df_to_save:", df_to_save.columns.tolist())
+            st.write("Primeras filas:", df_to_save.head())
             guardar_asignaciones(df_to_save)
             guardar_resumen_mensual(st.session_state["resumen_mensual"])
             st.success("✅ Datos guardados correctamente")
