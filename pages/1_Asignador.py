@@ -230,8 +230,8 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     })
     st.session_state["resumen_mensual"] = resumen_mensual
 
-else:
-    st.subheader("⚠️ SUBA PLANTILLA DE PERSONAL y demanda")
+#else:
+    #st.subheader("⚠️ SUBA PLANTILLA DE PERSONAL y demanda")
 
 if st.session_state["asignacion_completada"]:
     df_assign = st.session_state["df_assign"].drop(columns=["Confirmado"], errors="ignore")
