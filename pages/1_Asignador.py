@@ -252,7 +252,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
 
 
 if st.session_state["asignacion_completada"]:
-    df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
+    #df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
     st.success("✅ Asignación completada")
     st.dataframe(df_assign)
     #prueba-----------------------------------------------------------------------
