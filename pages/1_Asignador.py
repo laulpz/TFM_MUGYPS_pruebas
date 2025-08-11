@@ -247,8 +247,8 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     guardar_resumen_mensual(resumen_mensual)
     subir_bd_a_drive(FILE_ID)
 
-    st.subheader("📊 Resumen mensual")
-    st.dataframe(resumen_mensual)
+    #st.subheader("📊 Resumen mensual")
+    #st.dataframe(resumen_mensual)
 
 
 if st.session_state["asignacion_completada"]:
@@ -256,16 +256,6 @@ if st.session_state["asignacion_completada"]:
     st.success("✅ Asignación completada")
     st.dataframe(df_assign)
     #prueba-----------------------------------------------------------------------
-
-    def to_excel_bytes(df):
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            df.to_excel(writer, index=False)
-        return output.getvalue()
-
-    st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(df_assign), file_name="Planilla_Asignada.xlsx")
-    st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(resumen_mensual), file_name="Resumen_Mensual.xlsx")
-
     if uncovered:
           df_uncov = pd.DataFrame(uncovered)
           st.subheader("⚠️ Turnos sin cubrir")
@@ -273,37 +263,34 @@ if st.session_state["asignacion_completada"]:
           st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(df_uncov), file_name="Turnos_Sin_Cubrir.xlsx")
 
 
+    st.markdown("### ✅ Confirmación de asignación")
+    aprobacion = st.radio("¿Deseas aprobar esta asignación?", ["Pendiente", "Aprobar", "Rehacer"], index=0)
+    if aprobacion == "Aprobar":
+        #OJO PORQUE AHORA ANTES LO ESTOY HACIENDO SIN VALIDACION, HAY QUE DEPURAR UN POCO EL CODIGO EN QUE SE GUARDA EN BBDD Y QUE SE IMPRIME COMO RESUMEN MENSUl
+        guardar_asignaciones(st.session_state["df_assign"])
+        guardar_resumen_mensual(resumen_mensual)
+        subir_bd_a_drive(FILE_ID)
+        st.success("📥 Datos guardados en la base de datos correctamente.")
+        st.subheader("🧾 Resumen Asignación Mensual por profesional")
 
-st.markdown("### ✅ Confirmación de asignación")
-aprobacion = st.radio("¿Deseas aprobar esta asignación?", ["Pendiente", "Aprobar", "Rehacer"], index=0)
-if aprobacion == "Aprobar":
-    #OJO PORQUE AHORA ANTES LO ESTOY HACIENDO SIN VALIDACION, HAY QUE DEPURAR UN POCO EL CODIGO EN QUE SE GUARDA EN BBDD Y QUE SE IMPRIME COMO RESUMEN MENSUl
-    guardar_asignaciones(st.session_state["df_assign"])
-    guardar_resumen_mensual(resumen_mensual)
-    subir_bd_a_drive(FILE_ID)
-    st.success("📥 Datos guardados en la base de datos correctamente.")
+        def to_excel_bytes(df):
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                df.to_excel(writer, index=False)
+            return output.getvalue()
 
-    st.subheader("🧾 Resumen Asignación Mensual por profesional")
-    st.dataframe(st.session_state["resumen_horas"])
-    st.download_button("⬇️ Descargar resumen mensual por profesional",
-                        data=to_excel_bytes(st.session_state["resumen_horas"]),
-                        file_name="Resumen_Mensual_Profesional.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(df_assign), file_name="Planilla_Asignada.xlsx")
+        st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(resumen_mensual), file_name="Resumen_Mensual.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-        
-    # Recalcular resumen anual únicamente desde la asignación actual
-        
-elif aprobacion == "Rehacer":
-    st.session_state["asignacion_completada"] = False
-    st.rerun()
-    #st.experimental_rerun()
+    elif aprobacion == "Rehacer":
+        st.session_state["asignacion_completada"] = False
+        st.rerun()
+        #st.experimental_rerun()
 
-if st.button("🔄 Reiniciar aplicación"):
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.rerun()
-
-
+    if st.button("🔄 Reiniciar aplicación"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()
 
 
 st.sidebar.markdown("---")
