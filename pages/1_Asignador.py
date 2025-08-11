@@ -132,8 +132,9 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
         return df_historicas.groupby('ID_Enfermera')['Horas'].sum().to_dict()
     return {row.ID: 0 for _, row in staff.iterrows()}
     
-    df_prev = cargar_horas()
-    staff_hours = dict(zip(df_prev["ID"], df_prev["Horas"])) if not df_prev.empty else {row.ID: 0 for _, row in staff.iterrows()}
+    df_horas_historicas = obtener_horas_acumuladas()
+    staff_hours = dict(zip(df_horas_historicas["ID"], df_horas_historicas["Horas_Acumuladas"])) 
+    if not df_horas_historicas.empty else {row.ID: 0 for _, row in staff.iterrows()}
     #staff_jornadas = dict.fromkeys(staff["ID"], 0)
     staff_dates = {row.ID: [] for _, row in staff.iterrows()}
     assignments, uncovered = [], []
@@ -267,29 +268,12 @@ if st.session_state["asignacion_completada"]:
     aprobacion = st.radio("¿Deseas aprobar esta asignación?", ["Pendiente", "Aprobar", "Rehacer"], index=0)
     
     if aprobacion == "Aprobar":
-        # Debug: Mostrar estructura del DataFrame
-        st.write("Debug - df_assign columns:", st.session_state["df_assign"].columns)
-        st.write("Debug - df_assign dtypes:", st.session_state["df_assign"].dtypes)
-    
-        # Verificar columnas requeridas (asegurando que los nombres coincidan exactamente)
-        required_cols = ["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]
-        if not all(col in st.session_state["df_assign"].columns for col in required_cols):
-            missing_cols = [col for col in required_cols if col not in st.session_state["df_assign"].columns]
-            st.error(f"❌ Faltan columnas requeridas: {missing_cols}")
-            st.stop()
-
         # Crear DataFrame para guardar (asegurando mayúsculas correctas)
-        df_to_save = st.session_state["df_assign"][["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]].copy()
-        df_to_save["Fecha"] = pd.to_datetime(df_to_save["Fecha"]).dt.strftime("%Y-%m-%d")
-
+        df_to_save = st.session_state["df_assign"][["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]]
     
         # Guardar
         try:
-            st.write("Columnas en df_to_save:", df_to_save.columns.tolist())
-            st.write("Primeras filas:", df_to_save.head())
             guardar_asignaciones(df_to_save)
-            guardar_resumen_mensual(st.session_state["resumen_mensual"])
-            actualizar_horas_acumuladas(staff_hours)  # <-- Añade esta línea
             st.success("✅ Datos guardados correctamente")
             subir_bd_a_drive(FILE_ID)
             st.success("📥 Datos guardados en la base de datos correctamente.")
