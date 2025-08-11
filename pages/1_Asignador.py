@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, date
 from io import BytesIO
 from db_manager import (
     init_db, guardar_asignaciones, guardar_resumen_mensual,
-    descargar_bd_desde_drive, subir_bd_a_drive, reset_db
+    descargar_bd_desde_drive, subir_bd_a_drive, reset_db, actualizar_horas_acumuladas
 )
 
 #Títulos y descripción
@@ -267,6 +267,7 @@ if st.session_state["asignacion_completada"]:
             st.write("Primeras filas:", df_to_save.head())
             guardar_asignaciones(df_to_save)
             guardar_resumen_mensual(st.session_state["resumen_mensual"])
+            actualizar_horas_acumuladas(staff_hours)  # <-- Añade esta línea
             st.success("✅ Datos guardados correctamente")
             subir_bd_a_drive(FILE_ID)
             st.success("📥 Datos guardados en la base de datos correctamente.")
