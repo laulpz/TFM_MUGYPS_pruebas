@@ -82,7 +82,7 @@ elif metodo == "Generar manualmente":
         dia_cast = dias_semana[fecha.weekday()]
         for turno in turnos:
              demanda.append({
-                 "Fecha": fecha.strftime("%Y-%m-%d"),
+                 "Fecha": fecha.isoformat(),
                  "Unidad": unidad,
                  "Turno": turno,
                  "Personal_Requerido": demanda_por_dia[dia_cast][turno]
