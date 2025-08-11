@@ -20,10 +20,14 @@ init_db()
 
 #31/07: Comprobar estado para conservar el de la sesión anterior. Hya que revisar variables
 if "asignacion_completada" not in st.session_state:
-    st.session_state["asignacion_completada"] = False
-    st.session_state["df_assign"] = None
-    st.session_state["df_uncov"] = None
-    st.session_state["resumen_horas"] = None
+    st.session_state.update({
+        "asignacion_completada": False,
+        "df_assign": None,
+        "file_staff": None,
+        "df_uncov": None
+    })
+
+#No sé si realmente es necesario
 if "file_staff" not in st.session_state:
     st.session_state["file_staff"] = None
 
@@ -37,8 +41,6 @@ turnos = ["Mañana", "Tarde", "Noche"]
 #Subida plantilla de personal. 10/08 añadido if para st.session_state
 st.sidebar.header("1️⃣📂 Suba la plantilla de personal")
 file_staff = st.sidebar.file_uploader("El archivo debe contener las siguientes columnas: Plantilla de personal (.xlsx)", type=["xlsx"])
-if file_staff:
-    st.session_state["file_staff"] = file_staff
 file_staff = st.session_state["file_staff"]
     
 #Configurar la demanda de turnos
@@ -243,6 +245,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
         "Fecha": "Jornadas_Asignadas",
         "Horas_Acumuladas": "Horas_Asignadas"
     })
+    st.session_state["resumen_mensual"] = resumen_mensual
 
     guardar_resumen_mensual(resumen_mensual)
     subir_bd_a_drive(FILE_ID)
@@ -252,7 +255,8 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
 
 
 if st.session_state["asignacion_completada"]:
-    df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
+    #df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
+    df_assign = st.session_state["df_assign"].drop(columns=["Confirmado"], errors="ignore")
     st.success("✅ Asignación completada")
     st.dataframe(df_assign)
     #prueba-----------------------------------------------------------------------
@@ -279,7 +283,7 @@ if st.session_state["asignacion_completada"]:
                 df.to_excel(writer, index=False)
             return output.getvalue()
 
-        st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(df_assign), file_name="Planilla_Asignada.xlsx")
+        st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(st.session_state["df_assign"]), file_name="Planilla_Asignada.xlsx")
         st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(resumen_mensual), file_name="Resumen_Mensual.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     elif aprobacion == "Rehacer":
@@ -296,8 +300,9 @@ if st.session_state["asignacion_completada"]:
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
     reset_db()
+    st.session_state.clear()
     st.sidebar.success("✅ Base de datos reiniciada correctamente.")
-    st.experimental_rerun() #VERSION 04/08: comprobar si es necesario, ahora me da error
+    #st.experimental_rerun() #VERSION 04/08: comprobar si es necesario, ahora me da error
     #for key in list(st.session_state.keys()): #VERSION 31/07. Está al final del todo. El mensaje de reinicio correcto desaparece rápido...
         #del st.session_state[key]
-    #st.rerun()
+    st.rerun()
