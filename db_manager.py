@@ -28,7 +28,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS horas (
             ID TEXT,
             Turno_Contrato TEXT,
-            Horas_Acumuladas REAL,
+            Horas REAL,
             PRIMARY KEY (ID, Turno_Contrato)
         )
     ''')
@@ -39,7 +39,7 @@ def init_db():
             Turno TEXT,
             ID_Enfermera TEXT,
             Jornada TEXT,
-            Horas_Acumuladas REAL
+            Horas REAL
         )
     ''')
     c.execute('''
@@ -69,7 +69,7 @@ def guardar_horas(df):
     conn.close()
 
 def guardar_asignaciones(df):
-    required_columns = ["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas_Acumuladas"]
+    required_columns = ["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]
     conn = sqlite3.connect(DB_PATH)
     try:
         # Validación mejorada
