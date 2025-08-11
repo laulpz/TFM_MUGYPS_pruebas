@@ -72,31 +72,27 @@ def guardar_asignaciones(df):
     required_columns = ["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]
     conn = sqlite3.connect(DB_PATH)
     try:
-        # Renombrar columnas si es necesario (minúsculas a mayúsculas)
-        column_mapping = {
-            "fecha": "Fecha",
-            "unidad": "Unidad",
-            "turno": "Turno",
-            "id_enfermera": "ID_Enfermera",
-            "jornada": "Jornada",
-            "horas": "Horas"
-        }
-        df = df.rename(columns=column_mapping)
+        # 1. Filtrar solo las columnas necesarias
+        df = df[required_columns].copy()
         
-        # Validación final
-        missing = set(required_columns) - set(df.columns)
-        if missing:
-            raise ValueError(f"Faltan columnas requeridas: {missing}. Columnas disponibles: {df.columns.tolist()}")
+        # 2. Forzar conversión de tipos
+        df["Fecha"] = pd.to_datetime(df["Fecha"]).dt.strftime("%Y-%m-%d")
+        df["Horas"] = df["Horas"].astype(float)
         
-        # Convertir y filtrar
-        df_to_save = df[required_columns].copy()
-        df_to_save["Fecha"] = pd.to_datetime(df_to_save["Fecha"]).dt.strftime("%Y-%m-%d")
+        # 3. Debug final
+        print("Columnas a guardar:", df.columns.tolist())
+        print("Tipos de datos:", df.dtypes)
+        print("Primeras filas:", df.head())
         
-        # Debug: Verificar datos antes de guardar
-        print("Columnas a guardar:", df_to_save.columns.tolist())
-        print("Primeras filas:", df_to_save.head())
-        
-        df_to_save.to_sql("asignaciones", conn, if_exists="append", index=False)
+        # 4. Usar if_exists='replace' temporalmente para forzar esquema correcto
+        df.to_sql("asignaciones", conn, if_exists='replace', index=False, dtype={
+            "Fecha": "TEXT",
+            "Unidad": "TEXT",
+            "Turno": "TEXT",
+            "ID_Enfermera": "TEXT",
+            "Jornada": "TEXT",
+            "Horas": "REAL"
+        })
         conn.commit()
     except Exception as e:
         conn.rollback()
