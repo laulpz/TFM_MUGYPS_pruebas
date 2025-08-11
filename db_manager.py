@@ -3,6 +3,7 @@ import pandas as pd
 import gdown
 import shutil
 from pathlib import Path
+from datetime import datetime, timedelta
 
 DB_PATH = Path("turnos.db")
 
@@ -72,34 +73,27 @@ def guardar_asignaciones(df):
     required_columns = ["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]
     conn = sqlite3.connect(DB_PATH)
     try:
-        # 1. Filtrar solo las columnas necesarias
-        df = df[required_columns].copy()
+        # Validación de columnas
+        missing = [col for col in required_columns if col not in df.columns]
+        if missing:
+            raise ValueError(f"Faltan columnas: {missing}")
         
-        # 2. Forzar conversión de tipos
-        df["Fecha"] = pd.to_datetime(df["Fecha"]).dt.strftime("%Y-%m-%d")
-        df["Horas"] = df["Horas"].astype(float)
-        
-        # 3. Debug final
-        print("Columnas a guardar:", df.columns.tolist())
-        print("Tipos de datos:", df.dtypes)
-        print("Primeras filas:", df.head())
-        
-        # 4. Usar if_exists='replace' temporalmente para forzar esquema correcto
-        df.to_sql("asignaciones", conn, if_exists='replace', index=False, dtype={
-            "Fecha": "TEXT",
-            "Unidad": "TEXT",
-            "Turno": "TEXT",
-            "ID_Enfermera": "TEXT",
-            "Jornada": "TEXT",
-            "Horas": "REAL"
-        })
+        # Insertar evitando duplicados
+        cursor = conn.cursor()
+        for _, row in df.iterrows():
+            cursor.execute('''
+                INSERT OR IGNORE INTO asignaciones 
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (row["Fecha"], row["Unidad"], row["Turno"], 
+                 row["ID_Enfermera"], row["Jornada"], row["Horas"]))
         conn.commit()
     except Exception as e:
         conn.rollback()
         raise e
     finally:
         conn.close()
-    
+        
+
 def cargar_asignaciones():
     conn = sqlite3.connect(DB_PATH)
     df = pd.read_sql_query("SELECT * FROM asignaciones", conn)
@@ -194,3 +188,19 @@ def actualizar_horas_acumuladas():
         conn.commit()
     finally:
         conn.close()
+
+# Nueva función para obtener acumulados
+def obtener_acumulados_anuales():
+    conn = sqlite3.connect(DB_PATH)
+    query = '''
+        SELECT 
+            ID_Enfermera,
+            strftime('%Y', Fecha) as Año,
+            SUM(Horas) as Horas_Acumuladas,
+            COUNT(*) as Jornadas_Acumuladas
+        FROM asignaciones
+        GROUP BY ID_Enfermera, strftime('%Y', Fecha)
+    '''
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
