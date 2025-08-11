@@ -221,7 +221,7 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     df_assign["Año"] = df_assign["Fecha"].dt.year
     df_assign["Mes"] = df_assign["Fecha"].dt.month
 
-    resumen_mensual = (df_assign.assign(
+    st.session_state["resumen_mensual"] = (df_assign.assign(
         Año=df_assign["Fecha"].dt.year,
         Mes=df_assign["Fecha"].dt.month
 ).groupby(["ID_Enfermera", "Unidad", "Turno", "Jornada", "Año", "Mes"])
