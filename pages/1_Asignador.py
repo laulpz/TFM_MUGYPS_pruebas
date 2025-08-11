@@ -18,7 +18,7 @@ FILE_ID = "1zqAyIB1BLfCc2uH1v29r-clARHoh2o_s"
 descargar_bd_desde_drive(FILE_ID)
 init_db()
 
-#31/07: Comprobar estado para conservar el de la sesión anterior. Hya que revisar variables
+#31/07: Comprobar estado para conservar el de la sesión anterior.
 if "asignacion_completada" not in st.session_state:
     st.session_state.update({
         "asignacion_completada": False,
@@ -31,7 +31,7 @@ if "asignacion_completada" not in st.session_state:
 if "file_staff" not in st.session_state:
     st.session_state["file_staff"] = None
 
-#Demanda de turnos
+#Inicialización de variables
 SHIFT_HOURS = {"Mañana": 7.5, "Tarde": 7.5, "Noche": 10}
 BASE_MAX_HOURS = {"Mañana": 1642.5, "Tarde": 1642.5, "Noche": 1470}
 BASE_MAX_JORNADAS = {"Mañana": 219, "Tarde": 219, "Noche": 147}
@@ -88,6 +88,7 @@ elif metodo == "Generar manualmente":
              })
     demand = pd.DataFrame(demanda)
 
+#Ejecutar asignación
 if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     staff = pd.read_excel(file_staff)
     staff.columns = staff.columns.str.strip()
@@ -131,7 +132,6 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     demand_sorted = demand.sort_values(by="Fecha")
     #st.subheader("📆 Demanda generada")
     #st.dataframe(demand)
-   
 
     for _, dem in demand_sorted.iterrows():
         fecha = dem["Fecha"]
@@ -206,29 +206,12 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
             uncovered.append({"Fecha": fecha, "Unidad": unidad, "Turno": turno, "Faltan": req - assigned_count})
 
     df_assign = pd.DataFrame(assignments)
-    #NEW 10/08
-    #-------------------------------------------------------------------------
+ 
     df_uncov = pd.DataFrame(uncovered) if uncovered else None 
 
-    #Parte de código del 31/07. Es unr esumen local, redundante con resumen_mensual que sí se guarda en BBDD
-    #resumen_horas = pd.DataFrame([{
-        #"ID": id_,
-        #"Turno_Contrato": staff.loc[staff.ID == id_, "Turno_Contrato"].values[0],
-        #"Horas_Acumuladas": horas,
-        #"Jornadas": len(staff_dates[id_])
-    #} for id_, horas in staff_hours.items()])
-
-    #if not df_prev.empty:
-        #resumen_horas = pd.concat([df_prev, resumen_horas]).groupby(["ID", "Turno_Contrato"], as_index=False).agg({"Horas_Acumuladas": "sum", "Jornadas": "sum"})
-    
-    #st.session_state["resumen_horas"] = resumen_horas
-    
     st.session_state["asignacion_completada"] = True
     st.session_state["df_assign"] = df_assign
     st.session_state["df_uncov"] = df_uncov
-
-
-    guardar_asignaciones(df_assign)
 
     df_assign["Fecha"] = pd.to_datetime(df_assign["Fecha"])
     df_assign["Año"] = df_assign["Fecha"].dt.year
@@ -247,28 +230,23 @@ if file_staff is not None and st.button("🚀 Ejecutar asignación"):
     })
     st.session_state["resumen_mensual"] = resumen_mensual
 
-    guardar_resumen_mensual(resumen_mensual)
-    subir_bd_a_drive(FILE_ID)
-
-    #st.subheader("📊 Resumen mensual")
-    #st.dataframe(resumen_mensual)
-
+else:
+    st.subheader("⚠️ SUBA PLANTILLA DE PERSONAL y demanda")
 
 if st.session_state["asignacion_completada"]:
-    #df_assign = df_assign.drop(columns=["Confirmado"], errors="ignore")
     df_assign = st.session_state["df_assign"].drop(columns=["Confirmado"], errors="ignore")
     st.success("✅ Asignación completada")
     st.dataframe(df_assign)
-    #prueba-----------------------------------------------------------------------
+    
     if uncovered:
           df_uncov = pd.DataFrame(uncovered)
           st.subheader("⚠️ Turnos sin cubrir")
           st.dataframe(df_uncov)
           st.download_button("⬇️ Descargar turnos sin cubrir", data=to_excel_bytes(df_uncov), file_name="Turnos_Sin_Cubrir.xlsx")
 
-
     st.markdown("### ✅ Confirmación de asignación")
     aprobacion = st.radio("¿Deseas aprobar esta asignación?", ["Pendiente", "Aprobar", "Rehacer"], index=0)
+    
     if aprobacion == "Aprobar":
         #OJO PORQUE AHORA ANTES LO ESTOY HACIENDO SIN VALIDACION, HAY QUE DEPURAR UN POCO EL CODIGO EN QUE SE GUARDA EN BBDD Y QUE SE IMPRIME COMO RESUMEN MENSUl
         guardar_asignaciones(st.session_state["df_assign"])
@@ -283,6 +261,8 @@ if st.session_state["asignacion_completada"]:
                 df.to_excel(writer, index=False)
             return output.getvalue()
 
+        #st.subheader("📊 Resumen mensual")
+        #st.dataframe(resumen_mensual)
         st.download_button("⬇️ Descargar planilla asignada", data=to_excel_bytes(st.session_state["df_assign"]), file_name="Planilla_Asignada.xlsx")
         st.download_button("⬇️ Descargar resumen mensual", data=to_excel_bytes(resumen_mensual), file_name="Resumen_Mensual.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
@@ -295,7 +275,6 @@ if st.session_state["asignacion_completada"]:
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
-
 
 st.sidebar.markdown("---")
 if st.sidebar.button("🗑️ Resetear base de datos"):
