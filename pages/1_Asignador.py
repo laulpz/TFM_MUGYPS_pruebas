@@ -258,7 +258,7 @@ if st.session_state["asignacion_completada"]:
             st.stop()
 
         # Crear DataFrame para guardar (asegurando mayúsculas correctas)
-        df_to_save = st.session_state["df_assign"].copy()[required_cols]
+        df_to_save = st.session_state["df_assign"][["Fecha", "Unidad", "Turno", "ID_Enfermera", "Jornada", "Horas"]].copy()
         df_to_save["Fecha"] = pd.to_datetime(df_to_save["Fecha"]).dt.strftime("%Y-%m-%d")
 
     
